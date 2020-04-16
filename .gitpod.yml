@@ -1,0 +1,7 @@
+vscode:
+  extensions:
+    - elmTooling.elm-ls-vscode@0.8.0:rb3k4mPelyC4Fqod9UBvvA==
+
+tasks:
+  - init: bash setup.sh
+    command: elm-live src/Main.elm --port 3000 -- --debug
