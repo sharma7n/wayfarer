@@ -27,10 +27,13 @@ modify key delta (Counter data) =
                 |> Maybe.withDefault 0
                 |> (\v -> v + delta)
                 |> max 0
+
+        newData =
+            data
+                |> Dict.insert key newValue
     in
     Counter <|
-        data
-            |> Dict.insert key newValue
+        newData
 
 
 get : comparable -> Counter comparable -> Int
