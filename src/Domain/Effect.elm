@@ -2,4 +2,5 @@ module Domain.Effect exposing (Effect(..))
 
 
 type Effect
-    = Effect
+    = Batch (List Effect)
+    | Other

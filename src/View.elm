@@ -4,15 +4,29 @@ import Element exposing (Element)
 import Html exposing (Html)
 import Model exposing (Model)
 import Msg exposing (Msg)
+import App.Ui as Ui exposing (Ui)
 
 
 view : Model -> Html Msg
 view model =
-    Element.layout
-        []
-        (viewElement model)
+    Ui.layout <| viewUi model
 
-
-viewElement : Model -> Element Msg
-viewElement model =
-    Element.text "Hello, world!"
+viewUi : Model -> Ui Msg
+viewUi model =
+    Ui.screen
+        { header =
+            Ui.header <| Ui.label "Header"
+        , context =
+            Ui.context []
+        , stage =
+            Ui.stage
+                { label =
+                    Ui.label "Stage"
+                , image =
+                    Ui.image "Image"
+                , description =
+                    Ui.description "Description"
+                }
+        , choices =
+            []
+        }
