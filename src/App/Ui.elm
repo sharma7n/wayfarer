@@ -89,7 +89,13 @@ image imagePath =
 
 imageElement : Image -> Element msg
 imageElement (Image imagePath) =
-    Element.none
+    Element.el
+        [ Element.Border.width 1
+        , Element.Background.color <| Element.rgb255 0 0 0
+        , Element.width <| Element.px 320
+        , Element.height <| Element.px 240
+        ]
+        Element.none
 
 
 type Header
@@ -197,9 +203,21 @@ stageElement (Stage lbl img desc) =
         , Element.height Element.fill
         , Element.Border.width 1
         ]
-        [ labelElement lbl
-        , imageElement img
-        , descriptionElement desc
+        [ Element.column
+            [ Element.Border.width 1
+            , Element.width Element.fill
+            , Element.height Element.fill
+            , Element.Background.color <| Element.rgb255 255 255 255
+            , Element.padding 10
+            , Element.spacing 10
+            ]
+            [ Element.el
+                [ Element.Font.bold
+                ]
+                (labelElement lbl)
+            , imageElement img
+            , descriptionElement desc
+            ]
         ]
 
 

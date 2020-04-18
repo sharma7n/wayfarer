@@ -56,7 +56,7 @@ viewHome global =
         , stage =
             Ui.stage
                 { label =
-                    Ui.label "Stage"
+                    Ui.label "World Map"
                 , image =
                     Ui.image "Image"
                 , description =
@@ -65,13 +65,33 @@ viewHome global =
         , choices =
             [ Ui.choice
                 { label =
-                    Ui.label "Action"
+                    Ui.label "Explore"
                 , description =
-                    Ui.description "Action Description"
+                    Ui.description ""
                 , requirements =
                     []
                 , msg =
                     Msg.UserSelectedScene Scene.MapSelect
+                }
+            , Ui.choice
+                { label =
+                    Ui.label "Shop"
+                , description =
+                    Ui.description ""
+                , requirements =
+                    []
+                , msg =
+                    Msg.UserSelectedScene <| Scene.Shop [] Scene.Home
+                }
+            , Ui.choice
+                { label =
+                    Ui.label "Inn"
+                , description =
+                    Ui.description ""
+                , requirements =
+                    []
+                , msg =
+                    Msg.UserSelectedScene <| Scene.Inn Scene.Home
                 }
             ]
         }
