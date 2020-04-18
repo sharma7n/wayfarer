@@ -2,5 +2,5 @@ module Domain.Effect exposing (Effect(..))
 
 
 type Effect
-    = Batch (List Effect)
-    | Other
+    = ChangeTime Int
+    | ChangeHitPoints Int

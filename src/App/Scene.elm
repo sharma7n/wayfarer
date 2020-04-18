@@ -70,8 +70,8 @@ viewHome global =
                     Ui.description "Action Description"
                 , requirements =
                     []
-                , effects =
-                    []
+                , msg =
+                    Msg.UserSelectedScene Scene.MapSelect
                 }
             ]
         }
@@ -81,7 +81,7 @@ viewMapSelect : Global -> Ui Msg
 viewMapSelect global =
     Ui.screen
         { header =
-            Ui.header <| Ui.label "Home"
+            Ui.header <| Ui.label "Ancient Fane"
         , context =
             Ui.context
                 [ Ui.info

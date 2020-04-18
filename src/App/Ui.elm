@@ -204,28 +204,23 @@ stageElement (Stage lbl img desc) =
 
 
 type Choice
-    = Choice Label Description (List Requirement) (List Effect)
+    = Choice Label Description (List Requirement) Msg
 
 
-choice : { label : Label, description : Description, requirements : List Requirement, effects : List Effect } -> Choice
+choice : { label : Label, description : Description, requirements : List Requirement, msg : Msg } -> Choice
 choice o =
-    Choice o.label o.description o.requirements o.effects
+    Choice o.label o.description o.requirements o.msg
 
 
 choiceElement : Choice -> Element Msg
-choiceElement (Choice lbl desc requirements effects) =
+choiceElement (Choice lbl desc requirements msg) =
     Element.Input.button
         [ Element.Background.color <| Element.rgb255 255 255 255
         , Element.Border.width 1
         , Element.padding 10
         ]
         { onPress =
-            case effects of
-                [] ->
-                    Nothing
-
-                _ ->
-                    Just <| Msg.SystemAppliedEffect (Effect.Batch effects)
+            Just msg
         , label =
             Element.column
                 [ Element.spacing 5
