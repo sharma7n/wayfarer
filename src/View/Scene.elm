@@ -5,52 +5,53 @@ import Domain.Dungeon as Dungeon exposing (Dungeon)
 import Domain.Global as Global exposing (Global)
 import Domain.Object as Object exposing (Object)
 import Domain.Scene as Scene exposing (Scene)
+import Model exposing (Model)
 import Msg exposing (Msg)
 import View.Ui as Ui exposing (Ui)
 
 
-view : Scene -> Global -> Ui Msg
-view scene global =
-    case scene of
+view : Model -> Ui Msg
+view model =
+    case model.scene of
         Scene.Home ->
-            viewHome global
+            viewHome model
 
         Scene.MapSelect ->
-            viewMapSelect global
+            viewMapSelect model
 
         Scene.Dungeon dungeon ->
-            viewDungeon dungeon global
+            viewDungeon dungeon model
 
         Scene.Battle battle ambient ->
-            viewBattle battle ambient global
+            viewBattle battle ambient model
 
         Scene.BossBattle battle ->
-            viewBossBattle battle global
+            viewBossBattle battle model
 
         Scene.Shop stock ambient ->
-            viewShop stock ambient global
+            viewShop stock ambient model
 
         Scene.Inn ambient ->
-            viewInn ambient global
+            viewInn ambient model
 
         Scene.GameOver ->
-            viewGameOver global
+            viewGameOver model
 
 
-viewHome : Global -> Ui Msg
-viewHome global =
+viewHome : Model -> Ui Msg
+viewHome model =
     Ui.screen
         { header =
-            Ui.header <| Ui.label "Home"
+            Ui.header model.scene
         , context =
             Ui.context
                 [ Ui.info
                     { label = Ui.label "Time"
-                    , quantity = Ui.quantity global.time
+                    , quantity = Ui.quantity model.global.time
                     }
                 , Ui.info
                     { label = Ui.label "HP"
-                    , quantity = Ui.quantity global.hitPoints
+                    , quantity = Ui.quantity model.global.hitPoints
                     }
                 ]
         , stage =
@@ -97,16 +98,16 @@ viewHome global =
         }
 
 
-viewMapSelect : Global -> Ui Msg
-viewMapSelect global =
+viewMapSelect : Model -> Ui Msg
+viewMapSelect model =
     Ui.screen
         { header =
-            Ui.header <| Ui.label "Ancient Fane"
+            Ui.header model.scene
         , context =
             Ui.context
                 [ Ui.info
                     { label = Ui.label "HP"
-                    , quantity = Ui.quantity global.hitPoints
+                    , quantity = Ui.quantity model.global.hitPoints
                     }
                 ]
         , stage =
@@ -123,16 +124,16 @@ viewMapSelect global =
         }
 
 
-viewDungeon : Dungeon -> Global -> Ui Msg
-viewDungeon dungeon global =
+viewDungeon : Dungeon -> Model -> Ui Msg
+viewDungeon dungeon model =
     Ui.screen
         { header =
-            Ui.header <| Ui.label "Dungeon"
+            Ui.header model.scene
         , context =
             Ui.context
                 [ Ui.info
                     { label = Ui.label "HP"
-                    , quantity = Ui.quantity global.hitPoints
+                    , quantity = Ui.quantity model.global.hitPoints
                     }
                 ]
         , stage =
@@ -149,16 +150,16 @@ viewDungeon dungeon global =
         }
 
 
-viewBattle : Battle -> Scene -> Global -> Ui Msg
-viewBattle battle ambient global =
+viewBattle : Battle -> Scene -> Model -> Ui Msg
+viewBattle battle ambient model =
     Ui.screen
         { header =
-            Ui.header <| Ui.label "Battle"
+            Ui.header model.scene
         , context =
             Ui.context
                 [ Ui.info
                     { label = Ui.label "HP"
-                    , quantity = Ui.quantity global.hitPoints
+                    , quantity = Ui.quantity model.global.hitPoints
                     }
                 ]
         , stage =
@@ -175,16 +176,16 @@ viewBattle battle ambient global =
         }
 
 
-viewBossBattle : Battle -> Global -> Ui Msg
-viewBossBattle battle global =
+viewBossBattle : Battle -> Model -> Ui Msg
+viewBossBattle battle model =
     Ui.screen
         { header =
-            Ui.header <| Ui.label "Boss Battle"
+            Ui.header model.scene
         , context =
             Ui.context
                 [ Ui.info
                     { label = Ui.label "HP"
-                    , quantity = Ui.quantity global.hitPoints
+                    , quantity = Ui.quantity model.global.hitPoints
                     }
                 ]
         , stage =
@@ -201,16 +202,16 @@ viewBossBattle battle global =
         }
 
 
-viewShop : List Object -> Scene -> Global -> Ui Msg
-viewShop stock ambient global =
+viewShop : List Object -> Scene -> Model -> Ui Msg
+viewShop stock ambient model =
     Ui.screen
         { header =
-            Ui.header <| Ui.label "Shop"
+            Ui.header model.scene
         , context =
             Ui.context
                 [ Ui.info
                     { label = Ui.label "HP"
-                    , quantity = Ui.quantity global.hitPoints
+                    , quantity = Ui.quantity model.global.hitPoints
                     }
                 ]
         , stage =
@@ -227,20 +228,20 @@ viewShop stock ambient global =
         }
 
 
-viewInn : Scene -> Global -> Ui Msg
-viewInn ambient global =
+viewInn : Scene -> Model -> Ui Msg
+viewInn ambient model =
     Ui.screen
         { header =
-            Ui.header <| Ui.label "Inn"
+            Ui.header model.scene
         , context =
             Ui.context
                 [ Ui.info
                     { label = Ui.label "HP"
-                    , quantity = Ui.quantity global.hitPoints
+                    , quantity = Ui.quantity model.global.hitPoints
                     }
                 , Ui.info
                     { label = Ui.label "Gold"
-                    , quantity = Ui.quantity global.gold
+                    , quantity = Ui.quantity model.global.gold
                     }
                 ]
         , stage =
@@ -257,16 +258,16 @@ viewInn ambient global =
         }
 
 
-viewGameOver : Global -> Ui Msg
-viewGameOver global =
+viewGameOver : Model -> Ui Msg
+viewGameOver model =
     Ui.screen
         { header =
-            Ui.header <| Ui.label "Home"
+            Ui.header model.scene
         , context =
             Ui.context
                 [ Ui.info
                     { label = Ui.label "HP"
-                    , quantity = Ui.quantity 10
+                    , quantity = Ui.quantity model.global.hitPoints
                     }
                 ]
         , stage =

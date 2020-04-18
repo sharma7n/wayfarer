@@ -14,4 +14,4 @@ view model =
 
 viewUi : Model -> Ui Msg
 viewUi model =
-    View.Scene.view model.scene model.global
+    View.Scene.view model

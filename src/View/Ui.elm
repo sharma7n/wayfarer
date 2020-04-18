@@ -15,6 +15,7 @@ module View.Ui exposing
 
 import Domain.Effect as Effect exposing (Effect)
 import Domain.Requirement as Requirement exposing (Requirement)
+import Domain.Scene as Scene exposing (Scene)
 import Element exposing (Element)
 import Element.Background
 import Element.Border
@@ -99,16 +100,16 @@ imageElement (Image imagePath) =
 
 
 type Header
-    = Header Label
+    = Header Scene
 
 
-header : Label -> Header
-header lbl =
-    Header lbl
+header : Scene -> Header
+header scn =
+    Header scn
 
 
-headerElement : Header -> Element msg
-headerElement (Header lbl) =
+headerElement : Header -> Element Msg
+headerElement (Header scn) =
     Element.row
         [ Element.width Element.fill
         , Element.height <| Element.px 50
@@ -117,9 +118,28 @@ headerElement (Header lbl) =
         , Element.padding 10
         , Element.Font.variant Element.Font.smallCaps
         , Element.Font.bold
+        , Element.spacing 20
         ]
-        [ labelElement lbl
+        [ backElement <| Scene.ambient scn
+        , labelElement <| label <| Scene.toString scn
         ]
+
+
+backElement : Maybe Scene -> Element Msg
+backElement maybeScene =
+    case maybeScene of
+        Nothing ->
+            Element.none
+
+        Just scene ->
+            Element.Input.button
+                [ Element.Font.variant Element.Font.smallCaps
+                ]
+                { onPress =
+                    Just <| Msg.UserSelectedScene scene
+                , label =
+                    labelElement <| label "ᐊ Back"
+                }
 
 
 type Info
