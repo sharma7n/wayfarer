@@ -6,6 +6,7 @@ module App.Ui exposing
     , image
     , label
     , layout
+    , quantity
     , screen
     , stage
     )
@@ -40,7 +41,10 @@ label text =
 
 labelElement : Label -> Element msg
 labelElement (Label text) =
-    Element.text text
+    Element.el
+        [ Element.Font.variant Element.Font.smallCaps
+        ]
+        (Element.text text)
 
 
 type Description
@@ -101,6 +105,8 @@ headerElement (Header lbl) =
         , Element.height <| Element.px 50
         , Element.Font.color <| Element.rgb255 255 255 255
         , Element.Background.color <| Element.rgb255 0 0 0
+        , Element.padding 10
+        , Element.Font.variant Element.Font.smallCaps
         ]
         [ labelElement lbl
         ]
@@ -118,7 +124,9 @@ info o =
 infoElement : Info -> Element msg
 infoElement (Info lbl qty) =
     Element.row
-        []
+        [ Element.Background.color <| Element.rgb255 255 255 255
+        , Element.padding 10
+        ]
         [ labelElement lbl
         , quantityElement qty
         ]
@@ -136,7 +144,11 @@ context infoos =
 contextElement : Context -> Element msg
 contextElement (Context infos) =
     Element.column
-        []
+        [ Element.Background.color <| Element.rgb255 250 225 200
+        , Element.alignTop
+        , Element.padding 10
+        , Element.width <| Element.px 250
+        ]
         (List.map infoElement infos)
 
 
@@ -152,7 +164,12 @@ stage o =
 stageElement : Stage -> Element msg
 stageElement (Stage lbl img desc) =
     Element.column
-        []
+        [ Element.padding 10
+        , Element.Background.color <| Element.rgb255 250 225 200
+        , Element.centerX
+        , Element.width <| Element.px 600
+        , Element.height Element.fill
+        ]
         [ labelElement lbl
         , imageElement img
         , descriptionElement desc
@@ -202,11 +219,23 @@ screen o =
         Element.column
             [ Element.width Element.fill
             , Element.height Element.fill
+            , Element.Background.color <| Element.rgb255 150 100 50
+            , Element.Font.family
+                [ Element.Font.typeface "verdana"
+                , Element.Font.sansSerif
+                ]
+            , Element.explain Debug.todo
             ]
             [ headerElement o.header
-            , contextElement o.context
-            , stageElement o.stage
-            , Element.wrappedRow
-                []
-                (List.map choiceElement o.choices)
+            , Element.row
+                [ Element.width Element.fill
+                , Element.height Element.fill
+                , Element.padding 20
+                ]
+                [ contextElement o.context
+                , stageElement o.stage
+                , Element.wrappedRow
+                    []
+                    (List.map choiceElement o.choices)
+                ]
             ]
