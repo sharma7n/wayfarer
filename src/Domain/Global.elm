@@ -1,5 +1,6 @@
 module Domain.Global exposing
     ( Global
+    , modifyGold
     , modifyHitPoints
     , modifyTime
     )
@@ -8,32 +9,34 @@ module Domain.Global exposing
 type alias Global =
     { time : Int
     , hitPoints : Int
+    , gold : Int
     }
 
 
+addDeltaBounded : Int -> Int -> Int
+addDeltaBounded x y =
+    max 0 (x + y)
+
+
 modifyTime : Int -> Global -> Global
-modifyTime timeDelta model =
-    let
-        newTime =
-            model.time
-                |> (\t -> t + timeDelta)
-                |> max 0
-    in
-    { model
+modifyTime timeDelta global =
+    { global
         | time =
-            newTime
+            global.time |> addDeltaBounded timeDelta
     }
 
 
 modifyHitPoints : Int -> Global -> Global
-modifyHitPoints hitPointDelta model =
-    let
-        newHitPoints =
-            model.hitPoints
-                |> (\h -> h + hitPointDelta)
-                |> max 0
-    in
-    { model
+modifyHitPoints hitPointDelta global =
+    { global
         | hitPoints =
-            newHitPoints
+            global.hitPoints |> addDeltaBounded hitPointDelta
+    }
+
+
+modifyGold : Int -> Global -> Global
+modifyGold goldDelta global =
+    { global
+        | gold =
+            global.gold |> addDeltaBounded goldDelta
     }

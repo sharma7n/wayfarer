@@ -1,12 +1,12 @@
-module App.Scene exposing (view)
+module View.Scene exposing (view)
 
-import App.Ui as Ui exposing (Ui)
 import Domain.Battle as Battle exposing (Battle)
 import Domain.Dungeon as Dungeon exposing (Dungeon)
 import Domain.Global as Global exposing (Global)
 import Domain.Object as Object exposing (Object)
 import Domain.Scene as Scene exposing (Scene)
 import Msg exposing (Msg)
+import View.Ui as Ui exposing (Ui)
 
 
 view : Scene -> Global -> Ui Msg
@@ -106,7 +106,7 @@ viewMapSelect global =
             Ui.context
                 [ Ui.info
                     { label = Ui.label "HP"
-                    , quantity = Ui.quantity 10
+                    , quantity = Ui.quantity global.hitPoints
                     }
                 ]
         , stage =
@@ -127,12 +127,12 @@ viewDungeon : Dungeon -> Global -> Ui Msg
 viewDungeon dungeon global =
     Ui.screen
         { header =
-            Ui.header <| Ui.label "Home"
+            Ui.header <| Ui.label "Dungeon"
         , context =
             Ui.context
                 [ Ui.info
                     { label = Ui.label "HP"
-                    , quantity = Ui.quantity 10
+                    , quantity = Ui.quantity global.hitPoints
                     }
                 ]
         , stage =
@@ -153,12 +153,12 @@ viewBattle : Battle -> Scene -> Global -> Ui Msg
 viewBattle battle ambient global =
     Ui.screen
         { header =
-            Ui.header <| Ui.label "Home"
+            Ui.header <| Ui.label "Battle"
         , context =
             Ui.context
                 [ Ui.info
                     { label = Ui.label "HP"
-                    , quantity = Ui.quantity 10
+                    , quantity = Ui.quantity global.hitPoints
                     }
                 ]
         , stage =
@@ -179,12 +179,12 @@ viewBossBattle : Battle -> Global -> Ui Msg
 viewBossBattle battle global =
     Ui.screen
         { header =
-            Ui.header <| Ui.label "Home"
+            Ui.header <| Ui.label "Boss Battle"
         , context =
             Ui.context
                 [ Ui.info
                     { label = Ui.label "HP"
-                    , quantity = Ui.quantity 10
+                    , quantity = Ui.quantity global.hitPoints
                     }
                 ]
         , stage =
@@ -205,12 +205,12 @@ viewShop : List Object -> Scene -> Global -> Ui Msg
 viewShop stock ambient global =
     Ui.screen
         { header =
-            Ui.header <| Ui.label "Home"
+            Ui.header <| Ui.label "Shop"
         , context =
             Ui.context
                 [ Ui.info
                     { label = Ui.label "HP"
-                    , quantity = Ui.quantity 10
+                    , quantity = Ui.quantity global.hitPoints
                     }
                 ]
         , stage =
@@ -231,12 +231,16 @@ viewInn : Scene -> Global -> Ui Msg
 viewInn ambient global =
     Ui.screen
         { header =
-            Ui.header <| Ui.label "Home"
+            Ui.header <| Ui.label "Inn"
         , context =
             Ui.context
                 [ Ui.info
                     { label = Ui.label "HP"
-                    , quantity = Ui.quantity 10
+                    , quantity = Ui.quantity global.hitPoints
+                    }
+                , Ui.info
+                    { label = Ui.label "Gold"
+                    , quantity = Ui.quantity global.gold
                     }
                 ]
         , stage =

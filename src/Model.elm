@@ -21,6 +21,7 @@ init =
     , global =
         { time = 3
         , hitPoints = 10
+        , gold = 0
         }
     }
 

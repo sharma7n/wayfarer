@@ -1,10 +1,10 @@
 module View exposing (view)
 
-import App.Scene
-import App.Ui as Ui exposing (Ui)
 import Html exposing (Html)
 import Model exposing (Model)
 import Msg exposing (Msg)
+import View.Scene
+import View.Ui as Ui exposing (Ui)
 
 
 view : Model -> Html Msg
@@ -14,4 +14,4 @@ view model =
 
 viewUi : Model -> Ui Msg
 viewUi model =
-    App.Scene.view model.scene model.global
+    View.Scene.view model.scene model.global

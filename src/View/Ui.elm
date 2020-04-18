@@ -1,4 +1,4 @@
-module App.Ui exposing
+module View.Ui exposing
     ( Ui
     , choice
     , context
