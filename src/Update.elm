@@ -13,14 +13,5 @@ update msg model =
             ( model, Cmd.none )
                 |> Model.Effect.run effects
 
-        ( Msg.UserSelectedScene Scene.MapSelect, Scene.Home ) ->
-            ( { model | scene = Scene.MapSelect }, Cmd.none )
-
-        ( Msg.UserSelectedScene (Scene.Shop objects Scene.Home), Scene.Home ) ->
-            ( { model | scene = Scene.Shop objects Scene.Home }, Cmd.none )
-
-        ( Msg.UserSelectedScene (Scene.Inn Scene.Home), Scene.Home ) ->
-            ( { model | scene = Scene.Inn Scene.Home }, Cmd.none )
-
-        _ ->
-            ( model, Cmd.none )
+        ( Msg.UserSelectedScene scene, _ ) ->
+            ( { model | scene = scene }, Cmd.none )
