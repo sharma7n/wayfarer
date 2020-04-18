@@ -2,5 +2,6 @@ module Domain.Global exposing (Global)
 
 
 type alias Global =
-    { hitPoints : Int
+    { time : Int
+    , hitPoints : Int
     }

@@ -1,9 +1,11 @@
 module App.Ui exposing
     ( Ui
+    , choice
     , context
     , description
     , header
     , image
+    , info
     , label
     , layout
     , quantity
@@ -15,6 +17,7 @@ import Domain.Effect as Effect exposing (Effect)
 import Domain.Requirement as Requirement exposing (Requirement)
 import Element exposing (Element)
 import Element.Background
+import Element.Border
 import Element.Font
 import Element.Input
 import Html exposing (Html)
@@ -107,6 +110,7 @@ headerElement (Header lbl) =
         , Element.Background.color <| Element.rgb255 0 0 0
         , Element.padding 10
         , Element.Font.variant Element.Font.smallCaps
+        , Element.Font.bold
         ]
         [ labelElement lbl
         ]
@@ -124,11 +128,23 @@ info o =
 infoElement : Info -> Element msg
 infoElement (Info lbl qty) =
     Element.row
-        [ Element.Background.color <| Element.rgb255 255 255 255
-        , Element.padding 10
+        [ Element.width Element.fill
+        , Element.spacing 10
         ]
-        [ labelElement lbl
-        , quantityElement qty
+        [ Element.el
+            [ Element.width Element.fill
+            ]
+            (Element.el
+                [ Element.alignRight
+                , Element.Font.bold
+                ]
+                (labelElement lbl)
+            )
+        , Element.el
+            [ Element.alignLeft
+            , Element.width Element.fill
+            ]
+            (quantityElement qty)
         ]
 
 
@@ -136,9 +152,9 @@ type Context
     = Context (List Info)
 
 
-context : List { label : Label, quantity : Quantity } -> Context
+context : List Info -> Context
 context infoos =
-    Context <| List.map info infoos
+    Context infoos
 
 
 contextElement : Context -> Element msg
@@ -146,10 +162,20 @@ contextElement (Context infos) =
     Element.column
         [ Element.Background.color <| Element.rgb255 250 225 200
         , Element.alignTop
-        , Element.padding 10
         , Element.width <| Element.px 250
+        , Element.padding 10
+        , Element.Border.width 1
         ]
-        (List.map infoElement infos)
+        [ Element.column
+            [ Element.height Element.fill
+            , Element.width Element.fill
+            , Element.Background.color <| Element.rgb255 255 255 255
+            , Element.padding 10
+            , Element.spacing 5
+            , Element.Border.width 1
+            ]
+            (List.map infoElement infos)
+        ]
 
 
 type Stage
@@ -169,6 +195,7 @@ stageElement (Stage lbl img desc) =
         , Element.centerX
         , Element.width <| Element.px 600
         , Element.height Element.fill
+        , Element.Border.width 1
         ]
         [ labelElement lbl
         , imageElement img
@@ -188,7 +215,10 @@ choice o =
 choiceElement : Choice -> Element Msg
 choiceElement (Choice lbl desc requirements effects) =
     Element.Input.button
-        []
+        [ Element.Background.color <| Element.rgb255 255 255 255
+        , Element.Border.width 1
+        , Element.padding 10
+        ]
         { onPress =
             case effects of
                 [] ->
@@ -198,7 +228,8 @@ choiceElement (Choice lbl desc requirements effects) =
                     Just <| Msg.SystemAppliedEffect (Effect.Batch effects)
         , label =
             Element.column
-                []
+                [ Element.spacing 5
+                ]
                 [ labelElement lbl
                 , descriptionElement desc
                 ]
@@ -224,7 +255,6 @@ screen o =
                 [ Element.Font.typeface "verdana"
                 , Element.Font.sansSerif
                 ]
-            , Element.explain Debug.todo
             ]
             [ headerElement o.header
             , Element.row
@@ -233,9 +263,21 @@ screen o =
                 , Element.padding 20
                 ]
                 [ contextElement o.context
-                , stageElement o.stage
-                , Element.wrappedRow
-                    []
-                    (List.map choiceElement o.choices)
+                , Element.column
+                    [ Element.width Element.fill
+                    , Element.height Element.fill
+                    , Element.spacing 10
+                    ]
+                    [ stageElement o.stage
+                    , Element.wrappedRow
+                        [ Element.padding 10
+                        , Element.Background.color <| Element.rgb255 250 225 200
+                        , Element.centerX
+                        , Element.width <| Element.px 600
+                        , Element.height <| Element.px 250
+                        , Element.Border.width 1
+                        ]
+                        (List.map choiceElement o.choices)
+                    ]
                 ]
             ]

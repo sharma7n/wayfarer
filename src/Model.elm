@@ -19,7 +19,8 @@ init : Model
 init =
     { scene = Scene.Home
     , global =
-        { hitPoints = 10
+        { time = 3
+        , hitPoints = 10
         }
     }
 
