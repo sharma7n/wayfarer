@@ -1,19 +1,19 @@
 module Domain.Global exposing
     ( Global
-    , modifyGold
-    , modifyHitPoints
-    , modifyTime
+    , init
+    , modify
     )
 
 import Domain.Equipment as Equipment exposing (Equipment)
 import Domain.Item as Item exposing (Item)
 import Domain.Map as Map exposing (Map)
 import Domain.Skill as Skill exposing (Skill)
+import Effect.Global as Effect exposing (Effect)
+import Lib.Bounded as Bounded
 
 
 type alias Global =
-    { time : Int
-    , hitPoints : Int
+    { hitPoints : Int
     , gold : Int
     , maps : List Map
     , items : List Item
@@ -22,30 +22,24 @@ type alias Global =
     }
 
 
-addDeltaBounded : Int -> Int -> Int
-addDeltaBounded x y =
-    max 0 (x + y)
-
-
-modifyTime : Int -> Global -> Global
-modifyTime timeDelta global =
-    { global
-        | time =
-            global.time |> addDeltaBounded timeDelta
+init : Global
+init =
+    { hitPoints = 10
+    , gold = 0
+    , maps =
+        [ { hash = "beginning", level = 1 }
+        ]
+    , items = []
+    , equipment = []
+    , skills = []
     }
 
 
-modifyHitPoints : Int -> Global -> Global
-modifyHitPoints hitPointDelta global =
-    { global
-        | hitPoints =
-            global.hitPoints |> addDeltaBounded hitPointDelta
-    }
+modify : Effect -> Global -> Global
+modify effect global =
+    case effect of
+        Effect.ChangeHitPoints hitPointDelta ->
+            { global | hitPoints = global.hitPoints |> Bounded.add hitPointDelta }
 
-
-modifyGold : Int -> Global -> Global
-modifyGold goldDelta global =
-    { global
-        | gold =
-            global.gold |> addDeltaBounded goldDelta
-    }
+        Effect.ChangeGold goldDelta ->
+            { global | gold = global.gold |> Bounded.add goldDelta }

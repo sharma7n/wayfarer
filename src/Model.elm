@@ -7,6 +7,7 @@ module Model exposing
 
 import Domain.Equipment as Equipment exposing (Equipment)
 import Domain.Global as Global exposing (Global)
+import Domain.Home as Home exposing (Home)
 import Domain.Item as Item exposing (Item)
 import Domain.Map as Map exposing (Map)
 import Domain.Scene as Scene exposing (Scene)
@@ -21,18 +22,8 @@ type alias Model =
 
 init : Model
 init =
-    { scene = Scene.Home
-    , global =
-        { time = 3
-        , hitPoints = 10
-        , gold = 0
-        , maps =
-            [ { hash = "beginning", level = 1 }
-            ]
-        , items = []
-        , equipment = []
-        , skills = []
-        }
+    { scene = Scene.Home Home.init
+    , global = Global.init
     }
 
 

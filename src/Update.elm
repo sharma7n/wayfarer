@@ -19,10 +19,10 @@ update msg model =
         ( Msg.UserSelectedScene scene, _ ) ->
             ( { model | scene = scene }, Cmd.none )
 
-        ( Msg.UserSelectedMap map, Scene.MapSelect ) ->
+        ( Msg.UserSelectedMap map, Scene.MapSelect _ ) ->
             ( model, Random.generate Msg.SystemGotDungeon (Dungeon.generator map) )
 
-        ( Msg.SystemGotDungeon dungeon, Scene.MapSelect ) ->
+        ( Msg.SystemGotDungeon dungeon, Scene.MapSelect _ ) ->
             ( { model | scene = Scene.Dungeon dungeon }, Cmd.none )
 
         ( Msg.UserSelectedEvent event, Scene.Dungeon dungeon ) ->

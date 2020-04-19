@@ -4,6 +4,7 @@ import Domain.Battle as Battle exposing (Battle)
 import Domain.Dungeon as Dungeon exposing (Dungeon)
 import Domain.Event as Event exposing (Event)
 import Domain.Global as Global exposing (Global)
+import Domain.Home as Home exposing (Home)
 import Domain.Map as Map exposing (Map)
 import Domain.Object as Object exposing (Object)
 import Domain.Scene as Scene exposing (Scene)
@@ -15,10 +16,10 @@ import View.Ui as Ui exposing (Ui)
 view : Model -> Ui Msg
 view model =
     case model.scene of
-        Scene.Home ->
-            viewHome model
+        Scene.Home home ->
+            viewHome home model
 
-        Scene.MapSelect ->
+        Scene.MapSelect _ ->
             viewMapSelect model
 
         Scene.Dungeon dungeon ->
@@ -40,8 +41,8 @@ view model =
             viewGameOver model
 
 
-viewHome : Model -> Ui Msg
-viewHome model =
+viewHome : Home -> Model -> Ui Msg
+viewHome home model =
     Ui.screen
         { header =
             Ui.header model.scene
@@ -49,7 +50,7 @@ viewHome model =
             Ui.context
                 [ Ui.info
                     { label = Ui.label "Time"
-                    , quantity = Ui.quantity model.global.time
+                    , quantity = Ui.quantity home.time
                     }
                 , Ui.info
                     { label = Ui.label "HP"
@@ -74,7 +75,7 @@ viewHome model =
                 , requirements =
                     []
                 , msg =
-                    Msg.UserSelectedScene Scene.MapSelect
+                    Msg.UserSelectedScene <| Scene.MapSelect model.scene
                 }
             , Ui.choice
                 { label =
@@ -84,7 +85,7 @@ viewHome model =
                 , requirements =
                     []
                 , msg =
-                    Msg.UserSelectedScene <| Scene.Shop [] Scene.Home
+                    Msg.UserSelectedScene <| Scene.Shop [] (Scene.Home home)
                 }
             , Ui.choice
                 { label =
@@ -94,7 +95,7 @@ viewHome model =
                 , requirements =
                     []
                 , msg =
-                    Msg.UserSelectedScene <| Scene.Inn Scene.Home
+                    Msg.UserSelectedScene <| Scene.Inn (Scene.Home home)
                 }
             ]
         }

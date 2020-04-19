@@ -6,12 +6,13 @@ module Domain.Scene exposing
 
 import Domain.Battle as Battle exposing (Battle)
 import Domain.Dungeon as Dungeon exposing (Dungeon)
+import Domain.Home as Home exposing (Home)
 import Domain.Object as Object exposing (Object)
 
 
 type Scene
-    = Home
-    | MapSelect
+    = Home Home
+    | MapSelect Scene
     | Dungeon Dungeon
     | Battle Battle Scene
     | BossBattle Battle
@@ -23,10 +24,10 @@ type Scene
 toString : Scene -> String
 toString scene =
     case scene of
-        Home ->
+        Home _ ->
             "Home"
 
-        MapSelect ->
+        MapSelect _ ->
             "Ancient Fame"
 
         Dungeon _ ->
@@ -51,8 +52,8 @@ toString scene =
 ambient : Scene -> Maybe Scene
 ambient scene =
     case scene of
-        MapSelect ->
-            Just Home
+        MapSelect ambientScene ->
+            Just ambientScene
 
         Battle _ ambientScene ->
             Just ambientScene
