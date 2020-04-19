@@ -6,15 +6,22 @@ module Domain.Environ exposing
 import Lib.Distribution as Distribution exposing (Distribution)
 import Random
 
--- ELEMENTS: Fire, Ice, Water, Lightning, Wind, Earth, Dark, Light, Leaf, Moon, Law, Chaos, Prism
+
+
+-- ELEMENTS: Fire, Ice, Water, Lightning, Wind, Earth, Dark, Light, Leaf, Poison, Moon, Law, Chaos, Prism, Sun, Moon, Star
 -- ENVIRONS: Plains, Forest, Cave, Mountain, Temple, Desert, Waterway
--- Fire: Cave, Mountain, Desert, Temple
--- Ice: Plains, Forest, Cave, Mountain, Temple, Desert, Waterway
--- Water: Plains, Forest, Cave, Mountain, Temple, Waterway
--- Lightning: Plains, Forest, Mountain, Desert, Waterway
--- Wind: Plains, Forest, Cave, Mountain, Temple, Desert, Waterway
--- Earth: Plains, Forest, Cave, Mountain, Temple, Desert
--- Dark:  
+-- MOODS/THEMES: Beginning, Reflection, Sorrow,
+-- Plains: Magma Crater (Fire), Snow Plains (Ice), Lake/Pond/Bayou (Water), Storm Plains (Lightning),
+--  Windy Plains (Wind), Rocky Crater (Earth), Garden (Leaf), Swamp (Poison), Moonlit Plains (Moon),
+--  Sunny Plains (Sun), Starry Plains (Star)
+-- Forest: Burning Forest (Fire), Snow Forest (Ice), Rainforest/Jungle (Water), Rock Forest (Earth),
+--  Dark Forest (Dark), Sacred Forest (Light), Woodsy Forest (Forest)
+-- Cave:
+-- Mountain:
+-- Temple:
+-- Desert:
+-- Waterway:
+
 
 type Environ
     = Plains
@@ -43,12 +50,13 @@ toString environ =
 
         Ruins ->
             "Ruins"
-        
+
         Desert ->
             "Desert"
-        
+
         Waterway ->
             "Waterway"
+
 
 generator : Random.Generator Environ
 generator =
@@ -58,7 +66,7 @@ generator =
             [ ( 1, Forest )
             , ( 1, Cave )
             , ( 1, Mountain )
-            , ( 1, Ruins)
+            , ( 1, Ruins )
             , ( 1, Desert )
             , ( 1, Waterway )
             ]
