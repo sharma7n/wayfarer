@@ -7,6 +7,7 @@ module Domain.Scene exposing
 import Domain.Battle as Battle exposing (Battle)
 import Domain.Dungeon as Dungeon exposing (Dungeon)
 import Domain.Home as Home exposing (Home)
+import Domain.Map as Map exposing (Map)
 import Domain.Object as Object exposing (Object)
 
 
@@ -30,8 +31,8 @@ toString scene =
         MapSelect _ ->
             "Ancient Fame"
 
-        Dungeon _ ->
-            "Dungeon"
+        Dungeon dungeon ->
+            Map.toString dungeon.map
 
         Battle _ _ ->
             "Battle"

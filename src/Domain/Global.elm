@@ -4,6 +4,7 @@ module Domain.Global exposing
     , modify
     )
 
+import Domain.Environ as Environ exposing (Environ)
 import Domain.Equipment as Equipment exposing (Equipment)
 import Domain.Item as Item exposing (Item)
 import Domain.Map as Map exposing (Map)
@@ -27,7 +28,7 @@ init =
     { hitPoints = 10
     , gold = 0
     , maps =
-        [ { hash = "beginning", level = 1 }
+        [ { hash = "beginning", environ = Environ.Plains, level = 1 }
         ]
     , items = []
     , equipment = []
