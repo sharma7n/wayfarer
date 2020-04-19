@@ -1,5 +1,6 @@
 module View.Ui exposing
-    ( Ui
+    ( Choice
+    , Ui
     , choice
     , context
     , description

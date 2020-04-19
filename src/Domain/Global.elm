@@ -5,11 +5,20 @@ module Domain.Global exposing
     , modifyTime
     )
 
+import Domain.Equipment as Equipment exposing (Equipment)
+import Domain.Item as Item exposing (Item)
+import Domain.Map as Map exposing (Map)
+import Domain.Skill as Skill exposing (Skill)
+
 
 type alias Global =
     { time : Int
     , hitPoints : Int
     , gold : Int
+    , maps : List Map
+    , items : List Item
+    , equipment : List Equipment
+    , skills : List Skill
     }
 
 

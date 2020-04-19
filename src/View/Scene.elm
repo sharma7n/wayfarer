@@ -2,7 +2,9 @@ module View.Scene exposing (view)
 
 import Domain.Battle as Battle exposing (Battle)
 import Domain.Dungeon as Dungeon exposing (Dungeon)
+import Domain.Event as Event exposing (Event)
 import Domain.Global as Global exposing (Global)
+import Domain.Map as Map exposing (Map)
 import Domain.Object as Object exposing (Object)
 import Domain.Scene as Scene exposing (Scene)
 import Model exposing (Model)
@@ -120,33 +122,70 @@ viewMapSelect model =
                     Ui.description "Description"
                 }
         , choices =
-            []
+            List.map mapChoice model.global.maps
+        }
+
+
+mapChoice : Map -> Ui.Choice
+mapChoice map =
+    Ui.choice
+        { label = Ui.label <| Map.toString map
+        , description = Ui.description ""
+        , requirements = []
+        , msg =
+            Msg.UserSelectedMap map
         }
 
 
 viewDungeon : Dungeon -> Model -> Ui Msg
 viewDungeon dungeon model =
+    let
+        stage =
+            case dungeon.selectedEvent of
+                Nothing ->
+                    { label = Ui.label "Entrance"
+                    , image = Ui.image "Image"
+                    , description = Ui.description "Description"
+                    }
+
+                Just event ->
+                    { label = Ui.label event.name
+                    , image = Ui.image event.image
+                    , description = Ui.description event.description
+                    }
+    in
     Ui.screen
         { header =
             Ui.header model.scene
         , context =
             Ui.context
                 [ Ui.info
+                    { label = Ui.label "Safety"
+                    , quantity = Ui.quantity dungeon.safety
+                    }
+                , Ui.info
+                    { label = Ui.label "Path"
+                    , quantity = Ui.quantity dungeon.path
+                    }
+                , Ui.info
                     { label = Ui.label "HP"
                     , quantity = Ui.quantity model.global.hitPoints
                     }
                 ]
-        , stage =
-            Ui.stage
-                { label =
-                    Ui.label "Stage"
-                , image =
-                    Ui.image "Image"
-                , description =
-                    Ui.description "Description"
-                }
+        , stage = Ui.stage stage
         , choices =
-            []
+            List.map eventChoice dungeon.events
+        }
+
+
+eventChoice : Event -> Ui.Choice
+eventChoice event =
+    Ui.choice
+        { label = Ui.label event.name
+        , description = Ui.description event.description
+        , requirements = event.requirements
+        , msg =
+            Msg.UserSelectedEvent event
         }
 
 
