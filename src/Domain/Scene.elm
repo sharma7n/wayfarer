@@ -32,7 +32,7 @@ toString scene =
             "Ancient Fame"
 
         Dungeon dungeon ->
-            Map.toString dungeon.map
+            "Dungeon: " ++ Map.toString dungeon.map
 
         Battle _ _ ->
             "Battle"
