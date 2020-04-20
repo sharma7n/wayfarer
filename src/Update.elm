@@ -1,5 +1,6 @@
 module Update exposing (update)
 
+import Domain.Battle as Battle exposing (Battle)
 import Domain.Dungeon as Dungeon exposing (Dungeon)
 import Domain.Map as Map exposing (Map)
 import Domain.Scene as Scene exposing (Scene)
@@ -35,6 +36,16 @@ update msg model =
             in
             ( newModel, Cmd.none )
                 |> Model.Effect.run event.effects
+
+        ( Msg.SystemGotMonster monster, Scene.Dungeon dungeon ) ->
+            let
+                newScene =
+                    Scene.Battle (Battle.new monster) (Scene.Dungeon dungeon)
+
+                newModel =
+                    { model | scene = newScene }
+            in
+            ( newModel, Cmd.none )
 
         _ ->
             ( model, Cmd.none )
