@@ -24,6 +24,15 @@ import Element.Font
 import Element.Input
 import Html exposing (Html)
 import Msg exposing (Msg)
+import Svg exposing (Svg)
+
+
+svg : Svg msg -> Element msg
+svg svgObj =
+    svgObj
+        |> List.singleton
+        |> Svg.svg []
+        |> Element.html
 
 
 type Ui msg
@@ -111,6 +120,15 @@ header scn =
 
 headerElement : Header -> Element Msg
 headerElement (Header scn) =
+    let
+        headerLabel =
+            case Scene.ambient scn of
+                Just scene ->
+                    backElement scene
+
+                Nothing ->
+                    labelElement <| label <| Scene.toString scn
+    in
     Element.row
         [ Element.width Element.fill
         , Element.height <| Element.px 50
@@ -121,26 +139,20 @@ headerElement (Header scn) =
         , Element.Font.bold
         , Element.spacing 20
         ]
-        [ backElement <| Scene.ambient scn
-        , labelElement <| label <| Scene.toString scn
+        [ headerLabel
         ]
 
 
-backElement : Maybe Scene -> Element Msg
-backElement maybeScene =
-    case maybeScene of
-        Nothing ->
-            Element.none
-
-        Just scene ->
-            Element.Input.button
-                [ Element.Font.variant Element.Font.smallCaps
-                ]
-                { onPress =
-                    Just <| Msg.UserSelectedScene scene
-                , label =
-                    labelElement <| label "ᐊ Back"
-                }
+backElement : Scene -> Element Msg
+backElement scene =
+    Element.Input.button
+        [ Element.Font.variant Element.Font.smallCaps
+        ]
+        { onPress =
+            Just <| Msg.UserSelectedScene scene
+        , label =
+            labelElement <| label "ᐊ Back"
+        }
 
 
 type Info
@@ -236,7 +248,10 @@ stageElement (Stage lbl img desc) =
                 [ Element.Font.bold
                 ]
                 (labelElement lbl)
-            , imageElement img
+            , Element.el
+                [ Element.centerX
+                ]
+                (imageElement img)
             , descriptionElement desc
             ]
         ]
@@ -257,6 +272,7 @@ choiceElement (Choice lbl desc requirements msg) =
         [ Element.Background.color <| Element.rgb255 255 255 255
         , Element.Border.width 1
         , Element.padding 10
+        , Element.width Element.fill
         ]
         { onPress =
             Just msg
@@ -266,6 +282,9 @@ choiceElement (Choice lbl desc requirements msg) =
                 ]
                 [ labelElement lbl
                 , descriptionElement desc
+                , Element.row
+                    []
+                    (List.map svg (List.map Requirement.icon requirements))
                 ]
         }
 
@@ -303,15 +322,17 @@ screen o =
                     , Element.spacing 10
                     ]
                     [ stageElement o.stage
-                    , Element.wrappedRow
-                        [ Element.padding 10
-                        , Element.Background.color <| Element.rgb255 250 225 200
-                        , Element.centerX
-                        , Element.width <| Element.px 600
-                        , Element.height <| Element.px 250
-                        , Element.Border.width 1
-                        ]
-                        (List.map choiceElement o.choices)
                     ]
+                , Element.column
+                    [ Element.padding 10
+                    , Element.Background.color <| Element.rgb255 250 225 200
+                    , Element.centerX
+                    , Element.width <| Element.px 300
+                    , Element.height <| Element.px 250
+                    , Element.Border.width 1
+                    , Element.alignTop
+                    , Element.spacing 10
+                    ]
+                    (List.map choiceElement o.choices)
                 ]
             ]

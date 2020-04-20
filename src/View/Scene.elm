@@ -8,10 +8,12 @@ import Domain.Global as Global exposing (Global)
 import Domain.Home as Home exposing (Home)
 import Domain.Map as Map exposing (Map)
 import Domain.Object as Object exposing (Object)
+import Domain.Requirement as Requirement exposing (Requirement)
 import Domain.Scene as Scene exposing (Scene)
 import Effect.Global
 import Model exposing (Model)
 import Msg exposing (Msg)
+import Requirement.Home
 import View.Ui as Ui exposing (Ui)
 
 
@@ -92,7 +94,8 @@ viewHome home model =
                 , description =
                     Ui.description ""
                 , requirements =
-                    []
+                    [ Requirement.Home <| Requirement.Home.TimeCost 3
+                    ]
                 , msg =
                     Msg.SystemAppliedEffects <| [ Effect.Global <| Effect.Global.ChangeHitPoints 1 ]
                 }
@@ -115,7 +118,7 @@ viewMapSelect model =
         , stage =
             Ui.stage
                 { label =
-                    Ui.label "Stage"
+                    Ui.label "Ancient Fane"
                 , image =
                     Ui.image "Image"
                 , description =
@@ -193,7 +196,7 @@ viewBattle : Battle -> Scene -> Model -> Ui Msg
 viewBattle battle ambient model =
     Ui.screen
         { header =
-            Ui.header model.scene
+            Ui.header ambient
         , context =
             Ui.context
                 [ Ui.info
@@ -204,7 +207,7 @@ viewBattle battle ambient model =
         , stage =
             Ui.stage
                 { label =
-                    Ui.label "Stage"
+                    Ui.label <| battle.monster.name
                 , image =
                     Ui.image "Image"
                 , description =
@@ -256,7 +259,7 @@ viewShop stock ambient model =
         , stage =
             Ui.stage
                 { label =
-                    Ui.label "Stage"
+                    Ui.label "Shop"
                 , image =
                     Ui.image "Image"
                 , description =

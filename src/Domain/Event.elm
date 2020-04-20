@@ -28,13 +28,29 @@ generator : Map -> Random.Generator Event
 generator _ =
     Distribution.random <|
         Distribution.new
-            ( 1, cavern )
-            [ ( 1, ropeBridge )
+            ( 1, encounter )
+            [ ( 1, cavern )
+            , ( 1, ropeBridge )
             ]
 
 
 
 -- EVENT OBJECTS
+
+
+encounter : Event
+encounter =
+    { id = "encounter"
+    , name = "Encounter"
+    , description = "random encounter"
+    , image = "encounter"
+    , requirements =
+        [ Requirement.Dungeon <| Requirement.Dungeon.SafetyCost 1
+        ]
+    , effects =
+        [ Effect.Dungeon <| Effect.Dungeon.RandomEncounter
+        ]
+    }
 
 
 cavern : Event
