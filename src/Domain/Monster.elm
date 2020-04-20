@@ -1,5 +1,6 @@
 module Domain.Monster exposing
     ( Monster
+    , generator
     , getById
     )
 

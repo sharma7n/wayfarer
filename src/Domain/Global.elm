@@ -1,7 +1,6 @@
 module Domain.Global exposing
     ( Global
     , init
-    , modify
     )
 
 import Domain.Environ as Environ exposing (Environ)
@@ -34,13 +33,3 @@ init =
     , equipment = []
     , skills = []
     }
-
-
-modify : Effect -> Global -> Global
-modify effect global =
-    case effect of
-        Effect.ChangeHitPoints hitPointDelta ->
-            { global | hitPoints = global.hitPoints |> Bounded.add hitPointDelta }
-
-        Effect.ChangeGold goldDelta ->
-            { global | gold = global.gold |> Bounded.add goldDelta }

@@ -2,5 +2,6 @@ module Effect.Dungeon exposing (Effect(..))
 
 
 type Effect
-    = ChangeSafety Int
+    = RandomEncounter
+    | ChangeSafety Int
     | ChangePath Int
