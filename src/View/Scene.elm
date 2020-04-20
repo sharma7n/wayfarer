@@ -2,12 +2,14 @@ module View.Scene exposing (view)
 
 import Domain.Battle as Battle exposing (Battle)
 import Domain.Dungeon as Dungeon exposing (Dungeon)
+import Domain.Effect as Effect exposing (Effect)
 import Domain.Event as Event exposing (Event)
 import Domain.Global as Global exposing (Global)
 import Domain.Home as Home exposing (Home)
 import Domain.Map as Map exposing (Map)
 import Domain.Object as Object exposing (Object)
 import Domain.Scene as Scene exposing (Scene)
+import Effect.Global
 import Model exposing (Model)
 import Msg exposing (Msg)
 import View.Ui as Ui exposing (Ui)
@@ -33,9 +35,6 @@ view model =
 
         Scene.Shop stock ambient ->
             viewShop stock ambient model
-
-        Scene.Inn ambient ->
-            viewInn ambient model
 
         Scene.GameOver ->
             viewGameOver model
@@ -95,7 +94,7 @@ viewHome home model =
                 , requirements =
                     []
                 , msg =
-                    Msg.UserSelectedScene <| Scene.Inn (Scene.Home home)
+                    Msg.SystemAppliedEffects <| [ Effect.Global <| Effect.Global.ChangeHitPoints 1 ]
                 }
             ]
         }
@@ -252,36 +251,6 @@ viewShop stock ambient model =
                 [ Ui.info
                     { label = Ui.label "HP"
                     , quantity = Ui.quantity model.global.hitPoints
-                    }
-                ]
-        , stage =
-            Ui.stage
-                { label =
-                    Ui.label "Stage"
-                , image =
-                    Ui.image "Image"
-                , description =
-                    Ui.description "Description"
-                }
-        , choices =
-            []
-        }
-
-
-viewInn : Scene -> Model -> Ui Msg
-viewInn ambient model =
-    Ui.screen
-        { header =
-            Ui.header model.scene
-        , context =
-            Ui.context
-                [ Ui.info
-                    { label = Ui.label "HP"
-                    , quantity = Ui.quantity model.global.hitPoints
-                    }
-                , Ui.info
-                    { label = Ui.label "Gold"
-                    , quantity = Ui.quantity model.global.gold
                     }
                 ]
         , stage =

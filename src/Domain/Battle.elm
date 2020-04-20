@@ -1,6 +1,7 @@
 module Domain.Battle exposing
     ( Battle
     , modify
+    , new
     )
 
 import Domain.Monster as Monster exposing (Monster)
@@ -12,6 +13,14 @@ type alias Battle =
     { actionPoints : Int
     , generatedBlock : Int
     , monster : Monster
+    }
+
+
+new : Monster -> Battle
+new monster =
+    { actionPoints = 3
+    , generatedBlock = 0
+    , monster = monster
     }
 
 

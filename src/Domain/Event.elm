@@ -6,8 +6,12 @@ module Domain.Event exposing
 import Domain.Effect as Effect exposing (Effect)
 import Domain.Map as Map exposing (Map)
 import Domain.Requirement as Requirement exposing (Requirement)
+import Effect.Dungeon
+import Effect.Global
 import Lib.Distribution as Distribution exposing (Distribution)
 import Random
+import Requirement.Dungeon
+import Requirement.Global
 
 
 type alias Event =
@@ -25,7 +29,8 @@ generator _ =
     Distribution.random <|
         Distribution.new
             ( 1, cavern )
-            []
+            [ ( 1, ropeBridge )
+            ]
 
 
 
@@ -38,6 +43,24 @@ cavern =
     , name = "Cavern"
     , description = "a cavern"
     , image = "cavern"
-    , requirements = []
-    , effects = []
+    , requirements =
+        [ Requirement.Dungeon <| Requirement.Dungeon.SafetyCost 1
+        ]
+    , effects =
+        []
+    }
+
+
+ropeBridge : Event
+ropeBridge =
+    { id = "ropeBridge"
+    , name = "Rope Bridge"
+    , description = "a rope bridge"
+    , image = "ropeBridge"
+    , requirements =
+        [ Requirement.Dungeon <| Requirement.Dungeon.SafetyCost 1
+        ]
+    , effects =
+        [ Effect.Dungeon <| Effect.Dungeon.ChangePath 1
+        ]
     }

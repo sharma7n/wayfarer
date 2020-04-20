@@ -1,10 +1,10 @@
 module Domain.Dungeon exposing
     ( Dungeon
     , generator
-    , modify
     )
 
 import Domain.Event as Event exposing (Event)
+import Domain.Global as Global exposing (Global)
 import Domain.Map as Map exposing (Map)
 import Effect.Dungeon as Effect exposing (Effect)
 import Lib.Bounded as Bounded
@@ -44,13 +44,3 @@ generator map =
         pathGenerator
         eventsGenerator
         selectedEventGenerator
-
-
-modify : Effect -> Dungeon -> Dungeon
-modify effect dungeon =
-    case effect of
-        Effect.ChangeSafety safetyDelta ->
-            { dungeon | safety = dungeon.safety |> Bounded.add safetyDelta }
-
-        Effect.ChangePath pathDelta ->
-            { dungeon | path = dungeon.path |> Bounded.add pathDelta }

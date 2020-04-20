@@ -6,7 +6,16 @@ import Domain.Effect as Effect exposing (Effect)
 import Domain.Global as Global exposing (Global)
 import Domain.Home as Home exposing (Home)
 import Domain.Scene as Scene exposing (Scene)
+import Effect.Battle
+import Effect.Dungeon
+import Effect.Global
+import Effect.Home
+import Lib.Bounded as Bounded
 import Model exposing (Model)
+import Model.Battle
+import Model.Dungeon
+import Model.Global
+import Model.Home
 import Msg exposing (Msg)
 
 
@@ -20,19 +29,68 @@ runOne : Effect -> ( Model, Cmd Msg ) -> ( Model, Cmd Msg )
 runOne effect ( model, cmd ) =
     case ( effect, model.scene ) of
         ( Effect.Global globalEffect, _ ) ->
-            ( { model | global = model.global |> Global.modify globalEffect }, cmd )
+            let
+                ( newGlobal, newCmd ) =
+                    ( model.global, cmd )
+                        |> Model.Global.modify globalEffect
+            in
+            ( { model | global = newGlobal }, newCmd )
 
         ( Effect.Home homeEffect, Scene.Home home ) ->
-            ( { model | scene = Scene.Home (home |> Home.modify homeEffect) }, cmd )
+            let
+                ( newGlobal, newHome, newCmd ) =
+                    ( model.global, home, cmd )
+                        |> Model.Home.modify homeEffect
+
+                newModel =
+                    { model
+                        | global = newGlobal
+                        , scene = Scene.Home newHome
+                    }
+            in
+            ( newModel, newCmd )
 
         ( Effect.Dungeon dungeonEffect, Scene.Dungeon dungeon ) ->
-            ( { model | scene = Scene.Dungeon (dungeon |> Dungeon.modify dungeonEffect) }, cmd )
+            let
+                ( newGlobal, newDungeon, newCmd ) =
+                    ( model.global, dungeon, cmd )
+                        |> Model.Dungeon.modify dungeonEffect
+
+                newModel =
+                    { model
+                        | global = newGlobal
+                        , scene = Scene.Dungeon newDungeon
+                    }
+            in
+            ( newModel, newCmd )
 
         ( Effect.Battle battleEffect, Scene.Battle battle ambient ) ->
-            ( { model | scene = Scene.Battle (battle |> Battle.modify battleEffect) ambient }, cmd )
+            let
+                ( newGlobal, newBattle, newCmd ) =
+                    ( model.global, battle, cmd )
+                        |> Model.Battle.modify battleEffect
+
+                newModel =
+                    { model
+                        | global = newGlobal
+                        , scene = Scene.Battle newBattle ambient
+                    }
+            in
+            ( newModel, newCmd )
 
         ( Effect.Battle battleEffect, Scene.BossBattle bossBattle ) ->
-            ( { model | scene = Scene.BossBattle (bossBattle |> Battle.modify battleEffect) }, cmd )
+            let
+                ( newGlobal, newBossBattle, newCmd ) =
+                    ( model.global, bossBattle, cmd )
+                        |> Model.Battle.modify battleEffect
+
+                newModel =
+                    { model
+                        | global = newGlobal
+                        , scene = Scene.BossBattle newBossBattle
+                    }
+            in
+            ( newModel, newCmd )
 
         _ ->
             ( model, cmd )
