@@ -5,3 +5,4 @@ type Effect
     = RandomEncounter
     | ChangeSafety Int
     | ChangePath Int
+    | AppendEvents Int

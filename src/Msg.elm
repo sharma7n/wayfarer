@@ -12,6 +12,7 @@ type Msg
     = SystemAppliedEffects (List Effect)
     | SystemGotDungeon Dungeon
     | SystemGotMonster Monster
+    | SystemGotEvent Event
     | UserSelectedScene Scene
     | UserSelectedMap Map
     | UserSelectedEvent Event

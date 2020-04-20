@@ -29,7 +29,9 @@ update msg model =
         ( Msg.UserSelectedEvent event, Scene.Dungeon dungeon ) ->
             let
                 newDungeon =
-                    { dungeon | selectedEvent = Just event }
+                    { dungeon
+                        | selectedEvent = Just event
+                    }
 
                 newModel =
                     { model | scene = Scene.Dungeon newDungeon }
@@ -44,6 +46,16 @@ update msg model =
 
                 newModel =
                     { model | scene = newScene }
+            in
+            ( newModel, Cmd.none )
+
+        ( Msg.SystemGotEvent event, Scene.Dungeon dungeon ) ->
+            let
+                newDungeon =
+                    { dungeon | events = event :: dungeon.events }
+
+                newModel =
+                    { model | scene = Scene.Dungeon newDungeon }
             in
             ( newModel, Cmd.none )
 

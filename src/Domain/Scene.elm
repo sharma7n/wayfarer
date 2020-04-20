@@ -18,7 +18,6 @@ type Scene
     | Battle Battle Scene
     | BossBattle Battle
     | Shop (List Object) Scene
-    | Inn Scene
     | GameOver
 
 
@@ -43,9 +42,6 @@ toString scene =
         Shop _ _ ->
             "Shop"
 
-        Inn _ ->
-            "Inn"
-
         GameOver ->
             "Game Over"
 
@@ -60,9 +56,6 @@ ambient scene =
             Just ambientScene
 
         Shop _ ambientScene ->
-            Just ambientScene
-
-        Inn ambientScene ->
             Just ambientScene
 
         _ ->
