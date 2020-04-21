@@ -13,6 +13,7 @@ import Domain.Scene as Scene exposing (Scene)
 import Effect.Global
 import Model exposing (Model)
 import Msg exposing (Msg)
+import Requirement.Global
 import Requirement.Home
 import View.Ui as Ui exposing (Ui)
 
@@ -55,7 +56,7 @@ viewHome home model =
                     }
                 , Ui.info
                     { label = Ui.label "HP"
-                    , quantity = Ui.quantity model.global.hitPoints
+                    , quantity = Ui.ratio model.global.hitPoints model.global.maxHitPoints
                     }
                 ]
         , stage =
@@ -75,6 +76,8 @@ viewHome home model =
                     Ui.description ""
                 , requirements =
                     []
+                , effects =
+                    []
                 , msg =
                     Msg.UserSelectedScene <| Scene.MapSelect model.scene
                 }
@@ -85,6 +88,8 @@ viewHome home model =
                     Ui.description ""
                 , requirements =
                     []
+                , effects =
+                    []
                 , msg =
                     Msg.UserSelectedScene <| Scene.Shop [] (Scene.Home home)
                 }
@@ -94,7 +99,11 @@ viewHome home model =
                 , description =
                     Ui.description ""
                 , requirements =
-                    [ Requirement.Home <| Requirement.Home.TimeCost 3
+                    [ Requirement.Global <| Requirement.Global.GoldCost (model.global.maxHitPoints - model.global.hitPoints)
+                    , Requirement.Home <| Requirement.Home.TimeCost 3
+                    ]
+                , effects =
+                    [ Effect.Global <| Effect.Global.ChangeHitPoints (model.global.maxHitPoints - model.global.hitPoints)
                     ]
                 , msg =
                     Msg.SystemAppliedEffects <| [ Effect.Global <| Effect.Global.ChangeHitPoints 1 ]
@@ -135,6 +144,7 @@ mapChoice map =
         { label = Ui.label <| Map.toString map
         , description = Ui.description ""
         , requirements = []
+        , effects = []
         , msg =
             Msg.UserSelectedMap map
         }
@@ -187,6 +197,7 @@ eventChoice event =
         { label = Ui.label event.name
         , description = Ui.description event.description
         , requirements = event.requirements
+        , effects = event.effects
         , msg =
             Msg.UserSelectedEvent event
         }

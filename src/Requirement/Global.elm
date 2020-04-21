@@ -1,9 +1,7 @@
 module Requirement.Global exposing
     ( Requirement(..)
-    , icon
+    , toString
     )
-
-import Svg exposing (Svg)
 
 
 type Requirement
@@ -11,11 +9,11 @@ type Requirement
     | GoldCost Int
 
 
-icon : Requirement -> Svg msg
-icon requirement =
+toString : Requirement -> String
+toString requirement =
     case requirement of
         HitPointCost cost ->
-            Svg.text <| "HP " ++ String.fromInt cost
+            "HP " ++ String.fromInt cost
 
         GoldCost cost ->
-            Svg.text <| "Gold " ++ String.fromInt cost
+            "Gold " ++ String.fromInt cost

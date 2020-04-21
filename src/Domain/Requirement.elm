@@ -1,6 +1,6 @@
 module Domain.Requirement exposing
     ( Requirement(..)
-    , icon
+    , toString
     )
 
 import Requirement.Battle as Battle
@@ -17,17 +17,17 @@ type Requirement
     | Battle Battle.Requirement
 
 
-icon : Requirement -> Svg msg
-icon requirement =
+toString : Requirement -> String
+toString requirement =
     case requirement of
         Global global ->
-            Global.icon global
+            Global.toString global
 
         Home home ->
-            Home.icon home
+            Home.toString home
 
         Dungeon dungeon ->
-            Dungeon.icon dungeon
+            Dungeon.toString dungeon
 
         Battle battle ->
-            Battle.icon battle
+            Battle.toString battle

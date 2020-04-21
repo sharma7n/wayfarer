@@ -1,9 +1,7 @@
 module Requirement.Dungeon exposing
     ( Requirement(..)
-    , icon
+    , toString
     )
-
-import Svg exposing (Svg)
 
 
 type Requirement
@@ -11,11 +9,11 @@ type Requirement
     | PathCost Int
 
 
-icon : Requirement -> Svg msg
-icon requirement =
+toString : Requirement -> String
+toString requirement =
     case requirement of
         SafetyCost cost ->
-            Svg.text <| "Safety " ++ String.fromInt cost
+            "Safety " ++ String.fromInt cost
 
         PathCost cost ->
-            Svg.text <| "Path " ++ String.fromInt cost
+            "Path " ++ String.fromInt cost

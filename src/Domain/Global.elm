@@ -14,6 +14,7 @@ import Lib.Bounded as Bounded
 
 type alias Global =
     { hitPoints : Int
+    , maxHitPoints : Int
     , gold : Int
     , maps : List Map
     , items : List Item
@@ -25,6 +26,7 @@ type alias Global =
 init : Global
 init =
     { hitPoints = 10
+    , maxHitPoints = 10
     , gold = 0
     , maps =
         [ { hash = "beginning", environ = Environ.Plains, level = 1 }

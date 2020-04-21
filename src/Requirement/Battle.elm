@@ -1,17 +1,15 @@
 module Requirement.Battle exposing
     ( Requirement(..)
-    , icon
+    , toString
     )
-
-import Svg exposing (Svg)
 
 
 type Requirement
     = ActionPointCost Int
 
 
-icon : Requirement -> Svg msg
-icon requirement =
+toString : Requirement -> String
+toString requirement =
     case requirement of
         ActionPointCost cost ->
-            Svg.text <| "AP " ++ String.fromInt cost
+            "AP " ++ String.fromInt cost

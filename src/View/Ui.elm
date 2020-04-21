@@ -10,6 +10,7 @@ module View.Ui exposing
     , label
     , layout
     , quantity
+    , ratio
     , screen
     , stage
     )
@@ -24,15 +25,6 @@ import Element.Font
 import Element.Input
 import Html exposing (Html)
 import Msg exposing (Msg)
-import Svg exposing (Svg)
-
-
-svg : Svg msg -> Element msg
-svg svgObj =
-    svgObj
-        |> List.singleton
-        |> Svg.svg []
-        |> Element.html
 
 
 type Ui msg
@@ -76,17 +68,42 @@ descriptionElement (Description desc) =
 
 
 type Quantity
-    = Quantity Int
+    = Scalar Int
+    | Ratio Int Int
 
 
 quantity : Int -> Quantity
 quantity qty =
-    Quantity qty
+    Scalar qty
+
+
+ratio : Int -> Int -> Quantity
+ratio current max_ =
+    Ratio current max_
 
 
 quantityElement : Quantity -> Element msg
-quantityElement (Quantity qty) =
-    Element.text <| String.fromInt qty
+quantityElement qty =
+    case qty of
+        Scalar sc ->
+            Element.text <| String.fromInt sc
+
+        Ratio curr max_ ->
+            let
+                color =
+                    if Basics.toFloat curr <= (0.3 * Basics.toFloat max_) then
+                        Element.rgb255 150 0 0
+
+                    else if Basics.toFloat curr <= (0.6 * Basics.toFloat max_) then
+                        Element.rgb255 250 175 75
+
+                    else
+                        Element.rgb255 50 100 0
+            in
+            Element.el
+                [ Element.Font.color color
+                ]
+                (Element.text <| String.fromInt curr ++ " / " ++ String.fromInt max_)
 
 
 type Image
@@ -258,16 +275,16 @@ stageElement (Stage lbl img desc) =
 
 
 type Choice
-    = Choice Label Description (List Requirement) Msg
+    = Choice Label Description (List Requirement) (List Effect) Msg
 
 
-choice : { label : Label, description : Description, requirements : List Requirement, msg : Msg } -> Choice
+choice : { label : Label, description : Description, requirements : List Requirement, effects : List Effect, msg : Msg } -> Choice
 choice o =
-    Choice o.label o.description o.requirements o.msg
+    Choice o.label o.description o.requirements o.effects o.msg
 
 
 choiceElement : Choice -> Element Msg
-choiceElement (Choice lbl desc requirements msg) =
+choiceElement (Choice lbl desc requirements effects msg) =
     Element.Input.button
         [ Element.Background.color <| Element.rgb255 255 255 255
         , Element.Border.width 1
@@ -278,13 +295,16 @@ choiceElement (Choice lbl desc requirements msg) =
             Just msg
         , label =
             Element.column
-                [ Element.spacing 5
-                ]
+                []
                 [ labelElement lbl
-                , descriptionElement desc
                 , Element.row
-                    []
-                    (List.map svg (List.map Requirement.icon requirements))
+                    [ Element.spacing 5
+                    ]
+                    (List.map (Requirement.toString >> Element.text) requirements)
+                , Element.row
+                    [ Element.spacing 5
+                    ]
+                    (List.map (Effect.toString >> Element.text) effects)
                 ]
         }
 
@@ -328,7 +348,6 @@ screen o =
                     , Element.Background.color <| Element.rgb255 250 225 200
                     , Element.centerX
                     , Element.width <| Element.px 300
-                    , Element.height <| Element.px 250
                     , Element.Border.width 1
                     , Element.alignTop
                     , Element.spacing 10

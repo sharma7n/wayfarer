@@ -1,7 +1,6 @@
 module Domain.Home exposing
     ( Home
     , init
-    , modify
     )
 
 import Effect.Home as Effect exposing (Effect)
@@ -17,10 +16,3 @@ init : Home
 init =
     { time = 3
     }
-
-
-modify : Effect -> Home -> Home
-modify effect home =
-    case effect of
-        Effect.ChangeTime timeDelta ->
-            { home | time = home.time |> Bounded.add timeDelta }
