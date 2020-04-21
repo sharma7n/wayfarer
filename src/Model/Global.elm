@@ -10,7 +10,7 @@ modify : Effect -> ( Global, Cmd Msg ) -> ( Global, Cmd Msg )
 modify effect ( global, cmd ) =
     case effect of
         Effect.ChangeHitPoints hitPointDelta ->
-            ( { global | hitPoints = global.hitPoints |> Bounded.add hitPointDelta }
+            ( { global | hitPoints = global.hitPoints |> Bounded.addCapped global.maxHitPoints hitPointDelta }
             , cmd
             )
 

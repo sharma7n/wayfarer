@@ -10,6 +10,7 @@ module View.Ui exposing
     , label
     , layout
     , quantity
+    , ratio
     , screen
     , stage
     )
@@ -67,17 +68,42 @@ descriptionElement (Description desc) =
 
 
 type Quantity
-    = Quantity Int
+    = Scalar Int
+    | Ratio Int Int
 
 
 quantity : Int -> Quantity
 quantity qty =
-    Quantity qty
+    Scalar qty
+
+
+ratio : Int -> Int -> Quantity
+ratio current max_ =
+    Ratio current max_
 
 
 quantityElement : Quantity -> Element msg
-quantityElement (Quantity qty) =
-    Element.text <| String.fromInt qty
+quantityElement qty =
+    case qty of
+        Scalar sc ->
+            Element.text <| String.fromInt sc
+
+        Ratio curr max_ ->
+            let
+                color =
+                    if Basics.toFloat curr <= (0.3 * Basics.toFloat max_) then
+                        Element.rgb255 150 0 0
+
+                    else if Basics.toFloat curr <= (0.6 * Basics.toFloat max_) then
+                        Element.rgb255 250 175 75
+
+                    else
+                        Element.rgb255 50 100 0
+            in
+            Element.el
+                [ Element.Font.color color
+                ]
+                (Element.text <| String.fromInt curr ++ " / " ++ String.fromInt max_)
 
 
 type Image
@@ -111,6 +137,15 @@ header scn =
 
 headerElement : Header -> Element Msg
 headerElement (Header scn) =
+    let
+        headerLabel =
+            case Scene.ambient scn of
+                Just scene ->
+                    backElement scene
+
+                Nothing ->
+                    labelElement <| label <| Scene.toString scn
+    in
     Element.row
         [ Element.width Element.fill
         , Element.height <| Element.px 50
@@ -121,26 +156,20 @@ headerElement (Header scn) =
         , Element.Font.bold
         , Element.spacing 20
         ]
-        [ backElement <| Scene.ambient scn
-        , labelElement <| label <| Scene.toString scn
+        [ headerLabel
         ]
 
 
-backElement : Maybe Scene -> Element Msg
-backElement maybeScene =
-    case maybeScene of
-        Nothing ->
-            Element.none
-
-        Just scene ->
-            Element.Input.button
-                [ Element.Font.variant Element.Font.smallCaps
-                ]
-                { onPress =
-                    Just <| Msg.UserSelectedScene scene
-                , label =
-                    labelElement <| label "ᐊ Back"
-                }
+backElement : Scene -> Element Msg
+backElement scene =
+    Element.Input.button
+        [ Element.Font.variant Element.Font.smallCaps
+        ]
+        { onPress =
+            Just <| Msg.UserSelectedScene scene
+        , label =
+            labelElement <| label "ᐊ Back"
+        }
 
 
 type Info
@@ -236,36 +265,46 @@ stageElement (Stage lbl img desc) =
                 [ Element.Font.bold
                 ]
                 (labelElement lbl)
-            , imageElement img
+            , Element.el
+                [ Element.centerX
+                ]
+                (imageElement img)
             , descriptionElement desc
             ]
         ]
 
 
 type Choice
-    = Choice Label Description (List Requirement) Msg
+    = Choice Label Description (List Requirement) (List Effect) Msg
 
 
-choice : { label : Label, description : Description, requirements : List Requirement, msg : Msg } -> Choice
+choice : { label : Label, description : Description, requirements : List Requirement, effects : List Effect, msg : Msg } -> Choice
 choice o =
-    Choice o.label o.description o.requirements o.msg
+    Choice o.label o.description o.requirements o.effects o.msg
 
 
 choiceElement : Choice -> Element Msg
-choiceElement (Choice lbl desc requirements msg) =
+choiceElement (Choice lbl desc requirements effects msg) =
     Element.Input.button
         [ Element.Background.color <| Element.rgb255 255 255 255
         , Element.Border.width 1
         , Element.padding 10
+        , Element.width Element.fill
         ]
         { onPress =
             Just msg
         , label =
             Element.column
-                [ Element.spacing 5
-                ]
+                []
                 [ labelElement lbl
-                , descriptionElement desc
+                , Element.row
+                    [ Element.spacing 5
+                    ]
+                    (List.map (Requirement.toString >> Element.text) requirements)
+                , Element.row
+                    [ Element.spacing 5
+                    ]
+                    (List.map (Effect.toString >> Element.text) effects)
                 ]
         }
 
@@ -303,15 +342,16 @@ screen o =
                     , Element.spacing 10
                     ]
                     [ stageElement o.stage
-                    , Element.wrappedRow
-                        [ Element.padding 10
-                        , Element.Background.color <| Element.rgb255 250 225 200
-                        , Element.centerX
-                        , Element.width <| Element.px 600
-                        , Element.height <| Element.px 250
-                        , Element.Border.width 1
-                        ]
-                        (List.map choiceElement o.choices)
                     ]
+                , Element.column
+                    [ Element.padding 10
+                    , Element.Background.color <| Element.rgb255 250 225 200
+                    , Element.centerX
+                    , Element.width <| Element.px 300
+                    , Element.Border.width 1
+                    , Element.alignTop
+                    , Element.spacing 10
+                    ]
+                    (List.map choiceElement o.choices)
                 ]
             ]
