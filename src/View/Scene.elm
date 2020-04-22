@@ -82,7 +82,8 @@ viewHome home model =
               , requirements =
                     []
               , effects =
-                    []
+                    [ Effect.Home <| Effect.Home.Shop []
+                    ]
               }
             , { label = "Inn"
               , requirements =
