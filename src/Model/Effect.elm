@@ -32,7 +32,7 @@ runOne effect ( model, cmd ) =
             let
                 ( newGlobal, newCmd ) =
                     ( model.global, cmd )
-                        |> Model.Global.modify globalEffect
+                        |> Model.Global.runEffect globalEffect
             in
             ( { model | global = newGlobal }, newCmd )
 
@@ -40,7 +40,7 @@ runOne effect ( model, cmd ) =
             let
                 ( newGlobal, newHome, newCmd ) =
                     ( model.global, home, cmd )
-                        |> Model.Home.modify homeEffect
+                        |> Model.Home.runEffect homeEffect
 
                 newModel =
                     { model
@@ -54,7 +54,7 @@ runOne effect ( model, cmd ) =
             let
                 ( newGlobal, newDungeon, newCmd ) =
                     ( model.global, dungeon, cmd )
-                        |> Model.Dungeon.modify dungeonEffect
+                        |> Model.Dungeon.runEffect dungeonEffect
 
                 newModel =
                     { model
@@ -68,7 +68,7 @@ runOne effect ( model, cmd ) =
             let
                 ( newGlobal, newBattle, newCmd ) =
                     ( model.global, battle, cmd )
-                        |> Model.Battle.modify battleEffect
+                        |> Model.Battle.runEffect battleEffect
 
                 newModel =
                     { model
@@ -82,7 +82,7 @@ runOne effect ( model, cmd ) =
             let
                 ( newGlobal, newBossBattle, newCmd ) =
                     ( model.global, bossBattle, cmd )
-                        |> Model.Battle.modify battleEffect
+                        |> Model.Battle.runEffect battleEffect
 
                 newModel =
                     { model

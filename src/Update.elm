@@ -1,11 +1,13 @@
 module Update exposing (update)
 
 import Domain.Battle as Battle exposing (Battle)
+import Domain.Choice as Choice exposing (Choice)
 import Domain.Dungeon as Dungeon exposing (Dungeon)
 import Domain.Map as Map exposing (Map)
 import Domain.Scene as Scene exposing (Scene)
 import Model exposing (Model)
 import Model.Effect
+import Model.Requirement
 import Msg exposing (Msg)
 import Random
 
@@ -58,6 +60,15 @@ update msg model =
                     { model | scene = Scene.Dungeon newDungeon }
             in
             ( newModel, Cmd.none )
+
+        ( Msg.UserSelectedChoice choice, _ ) ->
+            if model |> Model.Requirement.satisfies choice.requirements then
+                ( model, Cmd.none )
+                    |> Model.Requirement.run choice.requirements
+                    |> Model.Effect.run choice.effects
+
+            else
+                ( model, Cmd.none )
 
         _ ->
             ( model, Cmd.none )

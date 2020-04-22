@@ -1,4 +1,8 @@
-module Model.Battle exposing (modify)
+module Model.Battle exposing
+    ( runEffect
+    , runRequirement
+    , satisfiesRequirement
+    )
 
 import Domain.Battle as Battle exposing (Battle)
 import Domain.Global as Global exposing (Global)
@@ -6,10 +10,11 @@ import Effect.Battle as Effect exposing (Effect)
 import Lib.Bounded as Bounded
 import Model exposing (Model)
 import Msg exposing (Msg)
+import Requirement.Battle as Requirement exposing (Requirement)
 
 
-modify : Effect -> ( Global, Battle, Cmd Msg ) -> ( Global, Battle, Cmd Msg )
-modify effect ( global, battle, cmd ) =
+runEffect : Effect -> ( Global, Battle, Cmd Msg ) -> ( Global, Battle, Cmd Msg )
+runEffect effect ( global, battle, cmd ) =
     case effect of
         Effect.ChangeActionPoints actionPointDelta ->
             ( global
@@ -35,3 +40,20 @@ modify effect ( global, battle, cmd ) =
             , { battle | monster = newMonster }
             , cmd
             )
+
+
+runRequirement : Requirement -> ( Global, Battle, Cmd Msg ) -> ( Global, Battle, Cmd Msg )
+runRequirement requirement ( global, battle, cmd ) =
+    case requirement of
+        Requirement.ActionPointCost cost ->
+            ( global
+            , { battle | actionPoints = battle.actionPoints |> Bounded.subtract cost }
+            , cmd
+            )
+
+
+satisfiesRequirement : Requirement -> Battle -> Bool
+satisfiesRequirement requirement battle =
+    case requirement of
+        Requirement.ActionPointCost cost ->
+            battle.actionPoints >= cost

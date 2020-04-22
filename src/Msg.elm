@@ -1,5 +1,6 @@
 module Msg exposing (Msg(..))
 
+import Domain.Choice as Choice exposing (Choice)
 import Domain.Dungeon as Dungeon exposing (Dungeon)
 import Domain.Effect as Effect exposing (Effect)
 import Domain.Event as Event exposing (Event)
@@ -16,3 +17,4 @@ type Msg
     | UserSelectedScene Scene
     | UserSelectedMap Map
     | UserSelectedEvent Event
+    | UserSelectedChoice Choice
