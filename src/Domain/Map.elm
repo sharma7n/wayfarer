@@ -1,8 +1,11 @@
 module Domain.Map exposing
     ( Map
+    , choice
     , toString
     )
 
+import Domain.Choice as Choice exposing (Choice)
+import Domain.Effect as Effect exposing (Effect)
 import Domain.Environ as Environ exposing (Environ)
 
 
@@ -19,3 +22,11 @@ toString map =
     , "Lv. " ++ String.fromInt map.level
     ]
         |> String.join " "
+
+
+choice : Map -> Choice
+choice map =
+    { label = toString map
+    , requirements = []
+    , effects = []
+    }

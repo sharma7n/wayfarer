@@ -1,6 +1,7 @@
 module View.Scene exposing (view)
 
 import Domain.Battle as Battle exposing (Battle)
+import Domain.Choice as Choice exposing (Choice)
 import Domain.Dungeon as Dungeon exposing (Dungeon)
 import Domain.Effect as Effect exposing (Effect)
 import Domain.Event as Event exposing (Event)
@@ -11,6 +12,7 @@ import Domain.Object as Object exposing (Object)
 import Domain.Requirement as Requirement exposing (Requirement)
 import Domain.Scene as Scene exposing (Scene)
 import Effect.Global
+import Effect.Home
 import Model exposing (Model)
 import Msg exposing (Msg)
 import Requirement.Global
@@ -69,45 +71,28 @@ viewHome home model =
                     Ui.description "Description"
                 }
         , choices =
-            [ Ui.choice
-                { label =
-                    Ui.label "Explore"
-                , description =
-                    Ui.description ""
-                , requirements =
+            [ { label = "Explore"
+              , requirements =
                     []
-                , effects =
+              , effects =
+                    [ Effect.Home <| Effect.Home.Fane
+                    ]
+              }
+            , { label = "Shop"
+              , requirements =
                     []
-                , msg =
-                    Msg.UserSelectedScene <| Scene.MapSelect model.scene
-                }
-            , Ui.choice
-                { label =
-                    Ui.label "Shop"
-                , description =
-                    Ui.description ""
-                , requirements =
+              , effects =
                     []
-                , effects =
-                    []
-                , msg =
-                    Msg.UserSelectedScene <| Scene.Shop [] (Scene.Home home)
-                }
-            , Ui.choice
-                { label =
-                    Ui.label "Inn"
-                , description =
-                    Ui.description ""
-                , requirements =
+              }
+            , { label = "Inn"
+              , requirements =
                     [ Requirement.Global <| Requirement.Global.GoldCost (model.global.maxHitPoints - model.global.hitPoints)
                     , Requirement.Home <| Requirement.Home.TimeCost 3
                     ]
-                , effects =
+              , effects =
                     [ Effect.Global <| Effect.Global.ChangeHitPoints (model.global.maxHitPoints - model.global.hitPoints)
                     ]
-                , msg =
-                    Msg.SystemAppliedEffects <| [ Effect.Global <| Effect.Global.ChangeHitPoints 1 ]
-                }
+              }
             ]
         }
 
@@ -134,19 +119,7 @@ viewMapSelect model =
                     Ui.description "Description"
                 }
         , choices =
-            List.map mapChoice model.global.maps
-        }
-
-
-mapChoice : Map -> Ui.Choice
-mapChoice map =
-    Ui.choice
-        { label = Ui.label <| Map.toString map
-        , description = Ui.description ""
-        , requirements = []
-        , effects = []
-        , msg =
-            Msg.UserSelectedMap map
+            List.map Map.choice model.global.maps
         }
 
 
@@ -187,19 +160,7 @@ viewDungeon dungeon model =
                 ]
         , stage = Ui.stage stage
         , choices =
-            List.map eventChoice dungeon.events
-        }
-
-
-eventChoice : Event -> Ui.Choice
-eventChoice event =
-    Ui.choice
-        { label = Ui.label event.name
-        , description = Ui.description event.description
-        , requirements = event.requirements
-        , effects = event.effects
-        , msg =
-            Msg.UserSelectedEvent event
+            List.map Event.choice dungeon.events
         }
 
 

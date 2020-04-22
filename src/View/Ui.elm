@@ -15,6 +15,7 @@ module View.Ui exposing
     , stage
     )
 
+import Domain.Choice
 import Domain.Effect as Effect exposing (Effect)
 import Domain.Requirement as Requirement exposing (Requirement)
 import Domain.Scene as Scene exposing (Scene)
@@ -275,16 +276,26 @@ stageElement (Stage lbl img desc) =
 
 
 type Choice
-    = Choice Label Description (List Requirement) (List Effect) Msg
+    = Choice Label (List Requirement) (List Effect) Msg
 
 
-choice : { label : Label, description : Description, requirements : List Requirement, effects : List Effect, msg : Msg } -> Choice
+choice : { label : Label, requirements : List Requirement, effects : List Effect, msg : Msg } -> Choice
 choice o =
-    Choice o.label o.description o.requirements o.effects o.msg
+    Choice o.label o.requirements o.effects o.msg
+
+
+choiceAdapter : Domain.Choice.Choice -> Choice
+choiceAdapter domainChoice =
+    choice
+        { label = label domainChoice.label
+        , requirements = domainChoice.requirements
+        , effects = domainChoice.effects
+        , msg = Msg.UserSelectedChoice domainChoice
+        }
 
 
 choiceElement : Choice -> Element Msg
-choiceElement (Choice lbl desc requirements effects msg) =
+choiceElement (Choice lbl requirements effects msg) =
     Element.Input.button
         [ Element.Background.color <| Element.rgb255 255 255 255
         , Element.Border.width 1
@@ -313,7 +324,7 @@ type alias Screen =
     { header : Header
     , context : Context
     , stage : Stage
-    , choices : List Choice
+    , choices : List Domain.Choice.Choice
     }
 
 
@@ -352,6 +363,6 @@ screen o =
                     , Element.alignTop
                     , Element.spacing 10
                     ]
-                    (List.map choiceElement o.choices)
+                    (List.map (choiceAdapter >> choiceElement) o.choices)
                 ]
             ]

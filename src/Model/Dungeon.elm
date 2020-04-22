@@ -1,4 +1,8 @@
-module Model.Dungeon exposing (modify)
+module Model.Dungeon exposing
+    ( runEffect
+    , runRequirement
+    , satisfiesRequirement
+    )
 
 import Domain.Dungeon as Dungeon exposing (Dungeon)
 import Domain.Event as Event exposing (Event)
@@ -9,10 +13,11 @@ import Lib.Bounded as Bounded
 import Model exposing (Model)
 import Msg exposing (Msg)
 import Random
+import Requirement.Dungeon as Requirement exposing (Requirement)
 
 
-modify : Effect -> ( Global, Dungeon, Cmd Msg ) -> ( Global, Dungeon, Cmd Msg )
-modify effect ( global, dungeon, cmd ) =
+runEffect : Effect -> ( Global, Dungeon, Cmd Msg ) -> ( Global, Dungeon, Cmd Msg )
+runEffect effect ( global, dungeon, cmd ) =
     case effect of
         Effect.RandomEncounter ->
             ( global
@@ -47,3 +52,29 @@ modify effect ( global, dungeon, cmd ) =
             , dungeon
             , newCmd
             )
+
+
+runRequirement : Requirement -> ( Global, Dungeon, Cmd Msg ) -> ( Global, Dungeon, Cmd Msg )
+runRequirement requirement ( global, dungeon, cmd ) =
+    case requirement of
+        Requirement.SafetyCost cost ->
+            ( global
+            , { dungeon | safety = dungeon.safety |> Bounded.subtract cost }
+            , cmd
+            )
+
+        Requirement.PathCost cost ->
+            ( global
+            , { dungeon | path = dungeon.path |> Bounded.subtract cost }
+            , cmd
+            )
+
+
+satisfiesRequirement : Requirement -> Dungeon -> Bool
+satisfiesRequirement requirement dungeon =
+    case requirement of
+        Requirement.SafetyCost cost ->
+            dungeon.safety >= cost
+
+        Requirement.PathCost cost ->
+            dungeon.path >= cost
