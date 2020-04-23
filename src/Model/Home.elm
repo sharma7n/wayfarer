@@ -8,6 +8,7 @@ import Domain.Global as Global exposing (Global)
 import Domain.Home as Home exposing (Home)
 import Domain.Object as Object exposing (Object)
 import Domain.Scene as Scene exposing (Scene)
+import Domain.Shop as Shop exposing (Shop)
 import Effect.Home as Effect exposing (Effect)
 import Lib.Bounded as Bounded
 import Model exposing (Model)
@@ -25,14 +26,19 @@ runEffect effect ( global, home, cmd ) =
             , Cmd.batch [ cmd, Random.generate Msg.UserSelectedScene (Random.constant <| Scene.MapSelect (Scene.Home home)) ]
             )
 
-        Effect.Shop objectIds ->
+        Effect.Shop shopName objectIds ->
             let
                 objects =
                     objectIds
                         |> List.filterMap Object.getById
 
+                shop =
+                    { name = shopName
+                    , stock = objects
+                    }
+
                 shopScene =
-                    Scene.Shop objects (Scene.Home home)
+                    Scene.Shop shop (Scene.Home home)
 
                 navigateToShop =
                     Random.generate Msg.UserSelectedScene (Random.constant shopScene)

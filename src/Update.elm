@@ -1,7 +1,6 @@
 module Update exposing (update)
 
 import Domain.Battle as Battle exposing (Battle)
-import Domain.Choice as Choice exposing (Choice)
 import Domain.Dungeon as Dungeon exposing (Dungeon)
 import Domain.Map as Map exposing (Map)
 import Domain.Scene as Scene exposing (Scene)
@@ -19,8 +18,14 @@ update msg model =
             ( model, Cmd.none )
                 |> Model.Effect.run effects
 
+        ( Msg.UserSelectedMapSelect, Scene.Home _ ) ->
+            ( { model | scene = Scene.MapSelect model.scene }, Cmd.none )
+
         ( Msg.UserSelectedScene scene, _ ) ->
             ( { model | scene = scene }, Cmd.none )
+
+        ( Msg.UserSelectedShop shop, _ ) ->
+            ( { model | scene = Scene.Shop shop model.scene }, Cmd.none )
 
         ( Msg.UserSelectedMap map, Scene.MapSelect _ ) ->
             ( model, Random.generate Msg.SystemGotDungeon (Dungeon.generator map) )
@@ -37,9 +42,17 @@ update msg model =
 
                 newModel =
                     { model | scene = Scene.Dungeon newDungeon }
+
+                ( newModel2, newCmd ) =
+                    ( newModel, Cmd.none )
+                        |> Model.Requirement.run event.requirements
+                        |> Model.Effect.run event.effects
             in
-            ( newModel, Cmd.none )
-                |> Model.Effect.run event.effects
+            if model |> Model.Requirement.satisfies event.requirements then
+                ( newModel2, newCmd )
+
+            else
+                ( model, Cmd.none )
 
         ( Msg.SystemGotMonster monster, Scene.Dungeon dungeon ) ->
             let
@@ -60,15 +73,6 @@ update msg model =
                     { model | scene = Scene.Dungeon newDungeon }
             in
             ( newModel, Cmd.none )
-
-        ( Msg.UserSelectedChoice choice, _ ) ->
-            if model |> Model.Requirement.satisfies choice.requirements then
-                ( model, Cmd.none )
-                    |> Model.Requirement.run choice.requirements
-                    |> Model.Effect.run choice.effects
-
-            else
-                ( model, Cmd.none )
 
         _ ->
             ( model, Cmd.none )

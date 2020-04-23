@@ -1,10 +1,8 @@
 module Domain.Event exposing
     ( Event
-    , choice
     , generator
     )
 
-import Domain.Choice as Choice exposing (Choice)
 import Domain.Effect as Effect exposing (Effect)
 import Domain.Map as Map exposing (Map)
 import Domain.Requirement as Requirement exposing (Requirement)
@@ -23,14 +21,6 @@ type alias Event =
     , image : String
     , requirements : List Requirement
     , effects : List Effect
-    }
-
-
-choice : Event -> Choice
-choice event =
-    { label = event.name
-    , requirements = event.requirements
-    , effects = event.effects
     }
 
 

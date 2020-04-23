@@ -1,12 +1,10 @@
 module Domain.Map exposing
     ( Map
     , beginning
-    , choice
     , getByHash
     , toString
     )
 
-import Domain.Choice as Choice exposing (Choice)
 import Domain.Effect as Effect exposing (Effect)
 import Domain.Environ as Environ exposing (Environ)
 import Effect.Fane
@@ -35,16 +33,6 @@ getByHash hash =
 
         _ ->
             Nothing
-
-
-choice : Map -> Choice
-choice map =
-    { label = toString map
-    , requirements = []
-    , effects =
-        [ Effect.Fane <| Effect.Fane.SelectMap map.hash
-        ]
-    }
 
 
 

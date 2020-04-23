@@ -6,7 +6,7 @@ module Effect.Home exposing
 
 type Effect
     = Fane
-    | Shop (List ( String, String ))
+    | Shop String (List ( String, String ))
     | ChangeTime Int
 
 
@@ -16,7 +16,7 @@ toString effect =
         Fane ->
             "Fane"
 
-        Shop _ ->
+        Shop _ _ ->
             "Shop"
 
         ChangeTime delta ->

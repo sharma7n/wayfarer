@@ -1,7 +1,6 @@
 module View.Ui exposing
     ( Choice
     , Ui
-    , choice
     , context
     , description
     , header
@@ -15,7 +14,6 @@ module View.Ui exposing
     , stage
     )
 
-import Domain.Choice
 import Domain.Effect as Effect exposing (Effect)
 import Domain.Requirement as Requirement exposing (Requirement)
 import Domain.Scene as Scene exposing (Scene)
@@ -275,27 +273,16 @@ stageElement (Stage lbl img desc) =
         ]
 
 
-type Choice
-    = Choice Label (List Requirement) (List Effect) Msg
-
-
-choice : { label : Label, requirements : List Requirement, effects : List Effect, msg : Msg } -> Choice
-choice o =
-    Choice o.label o.requirements o.effects o.msg
-
-
-choiceAdapter : Domain.Choice.Choice -> Choice
-choiceAdapter domainChoice =
-    choice
-        { label = label domainChoice.label
-        , requirements = domainChoice.requirements
-        , effects = domainChoice.effects
-        , msg = Msg.UserSelectedChoice domainChoice
-        }
+type alias Choice =
+    { label : String
+    , requirements : List Requirement
+    , effects : List Effect
+    , msg : Msg
+    }
 
 
 choiceElement : Choice -> Element Msg
-choiceElement (Choice lbl requirements effects msg) =
+choiceElement choice =
     Element.Input.button
         [ Element.Background.color <| Element.rgb255 255 255 255
         , Element.Border.width 1
@@ -303,19 +290,19 @@ choiceElement (Choice lbl requirements effects msg) =
         , Element.width Element.fill
         ]
         { onPress =
-            Just msg
+            Just choice.msg
         , label =
             Element.column
                 []
-                [ labelElement lbl
+                [ labelElement <| label choice.label
                 , Element.row
                     [ Element.spacing 5
                     ]
-                    (List.map (Requirement.toString >> Element.text) requirements)
+                    (List.map (Requirement.toString >> Element.text) choice.requirements)
                 , Element.row
                     [ Element.spacing 5
                     ]
-                    (List.map (Effect.toString >> Element.text) effects)
+                    (List.map (Effect.toString >> Element.text) choice.effects)
                 ]
         }
 
@@ -324,7 +311,7 @@ type alias Screen =
     { header : Header
     , context : Context
     , stage : Stage
-    , choices : List Domain.Choice.Choice
+    , choices : List Choice
     }
 
 
@@ -363,6 +350,6 @@ screen o =
                     , Element.alignTop
                     , Element.spacing 10
                     ]
-                    (List.map (choiceAdapter >> choiceElement) o.choices)
+                    (List.map choiceElement o.choices)
                 ]
             ]
