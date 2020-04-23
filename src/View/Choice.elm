@@ -59,16 +59,18 @@ shop s =
 
 inn : Global -> Ui.Choice
 inn global =
-    { label = "Inn"
-    , requirements =
-        [ Requirement.Global <| Requirement.Global.GoldCost (global.maxHitPoints - global.hitPoints)
-        , Requirement.Home <| Requirement.Home.TimeCost 3
-        ]
-    , effects =
-        [ Effect.Global <| Effect.Global.ChangeHitPoints (global.maxHitPoints - global.hitPoints)
-        ]
-    , msg =
-        Msg.SystemAppliedEffects
+    let
+        requirements =
+            [ Requirement.Global <| Requirement.Global.GoldCost (global.maxHitPoints - global.hitPoints)
+            , Requirement.Home <| Requirement.Home.TimeCost 3
+            ]
+
+        effects =
             [ Effect.Global <| Effect.Global.ChangeHitPoints (global.maxHitPoints - global.hitPoints)
             ]
+    in
+    { label = "Inn"
+    , requirements = requirements
+    , effects = effects
+    , msg = Msg.Decorator requirements effects Msg.NoOp
     }

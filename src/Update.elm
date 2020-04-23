@@ -14,9 +14,21 @@ import Random
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case ( msg, model.scene ) of
-        ( Msg.SystemAppliedEffects effects, _ ) ->
-            ( model, Cmd.none )
-                |> Model.Effect.run effects
+        ( Msg.Decorator requirements effects inner, _ ) ->
+            if model |> Model.Requirement.satisfies requirements then
+                let
+                    ( newModel, newCmd ) =
+                        ( model, Cmd.none )
+                            |> Model.Requirement.run requirements
+                            |> Model.Effect.run effects
+
+                    ( newModel2, newCmdB ) =
+                        update inner newModel
+                in
+                ( newModel2, Cmd.batch [ newCmd, newCmdB ] )
+
+            else
+                ( model, Cmd.none )
 
         ( Msg.UserSelectedMapSelect, Scene.Home _ ) ->
             ( { model | scene = Scene.MapSelect model.scene }, Cmd.none )
