@@ -1,11 +1,13 @@
 module View.Choice exposing
-    ( event
+    ( action
+    , event
     , explore
     , inn
     , map
     , shop
     )
 
+import Domain.Action as Action exposing (Action)
 import Domain.Effect as Effect exposing (Effect)
 import Domain.Event as Event exposing (Event)
 import Domain.Global as Global exposing (Global)
@@ -73,4 +75,13 @@ inn global =
     , requirements = requirements
     , effects = effects
     , msg = Msg.Decorator requirements effects Msg.NoOp
+    }
+
+
+action : Action -> Ui.Choice
+action a =
+    { label = a.name
+    , requirements = a.requirements
+    , effects = a.effects
+    , msg = Msg.Decorator a.requirements a.effects Msg.NoOp
     }

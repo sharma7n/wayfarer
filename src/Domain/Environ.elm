@@ -1,5 +1,6 @@
 module Domain.Environ exposing
     ( Environ(..)
+    , all
     , toString
     )
 
@@ -36,6 +37,17 @@ toString environ =
 
         Waterway ->
             "Waterway"
+
+
+all : List Environ
+all =
+    [ Plains
+    , Forest
+    , Cave
+    , Mountain
+    , Temple
+    , Waterway
+    ]
 
 
 generator : Random.Generator Environ

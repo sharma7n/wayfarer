@@ -42,6 +42,6 @@ getByHash hash =
 beginning : Map
 beginning =
     { hash = "beginning"
-    , environ = Environ.Plains
+    , environ = Environ.Cave
     , level = 1
     }

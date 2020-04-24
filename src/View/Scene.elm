@@ -88,7 +88,7 @@ viewMapSelect model =
             Ui.context
                 [ Ui.info
                     { label = Ui.label "HP"
-                    , quantity = Ui.quantity model.global.hitPoints
+                    , quantity = Ui.ratio model.global.hitPoints model.global.maxHitPoints
                     }
                 ]
         , stage =
@@ -137,7 +137,7 @@ viewDungeon dungeon model =
                     }
                 , Ui.info
                     { label = Ui.label "HP"
-                    , quantity = Ui.quantity model.global.hitPoints
+                    , quantity = Ui.ratio model.global.hitPoints model.global.maxHitPoints
                     }
                 ]
         , stage = Ui.stage stage
@@ -155,7 +155,19 @@ viewBattle battle ambient model =
             Ui.context
                 [ Ui.info
                     { label = Ui.label "HP"
-                    , quantity = Ui.quantity model.global.hitPoints
+                    , quantity = Ui.ratio model.global.hitPoints model.global.maxHitPoints
+                    }
+                , Ui.info
+                    { label = Ui.label "AP"
+                    , quantity = Ui.quantity battle.actionPoints
+                    }
+                , Ui.info
+                    { label = Ui.label "Block"
+                    , quantity = Ui.quantity battle.generatedBlock
+                    }
+                , Ui.info
+                    { label = Ui.label "Monster HP"
+                    , quantity = Ui.quantity battle.monster.hitPoints
                     }
                 ]
         , stage =
@@ -168,7 +180,7 @@ viewBattle battle ambient model =
                     Ui.description "Description"
                 }
         , choices =
-            []
+            List.map View.Choice.action battle.actions
         }
 
 
@@ -181,7 +193,7 @@ viewBossBattle battle model =
             Ui.context
                 [ Ui.info
                     { label = Ui.label "HP"
-                    , quantity = Ui.quantity model.global.hitPoints
+                    , quantity = Ui.ratio model.global.hitPoints model.global.maxHitPoints
                     }
                 ]
         , stage =
@@ -207,7 +219,7 @@ viewShop shop ambient model =
             Ui.context
                 [ Ui.info
                     { label = Ui.label "HP"
-                    , quantity = Ui.quantity model.global.hitPoints
+                    , quantity = Ui.ratio model.global.hitPoints model.global.maxHitPoints
                     }
                 ]
         , stage =
@@ -233,7 +245,7 @@ viewGameOver model =
             Ui.context
                 [ Ui.info
                     { label = Ui.label "HP"
-                    , quantity = Ui.quantity model.global.hitPoints
+                    , quantity = Ui.ratio model.global.hitPoints model.global.maxHitPoints
                     }
                 ]
         , stage =

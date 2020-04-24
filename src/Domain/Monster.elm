@@ -76,9 +76,7 @@ slime =
     { id = "slime"
     , name = "Slime"
     , frequency = 1.0
-    , environs =
-        [ Environ.Plains
-        ]
+    , environs = Environ.all
     , hitPoints = 5
     , behaviors =
         Distribution.new

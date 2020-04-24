@@ -5,14 +5,19 @@ module Effect.Battle exposing
 
 
 type Effect
-    = ChangeActionPoints Int
+    = EndTurn
+    | ChangeActionPoints Int
     | ChangeGeneratedBlock Int
     | ChangeMonsterHitPoints Int
+    | DealDamage Int
 
 
 toString : Effect -> String
 toString effect =
     case effect of
+        EndTurn ->
+            "End Turn"
+
         ChangeActionPoints delta ->
             "AP " ++ String.fromInt delta
 
@@ -21,3 +26,6 @@ toString effect =
 
         ChangeMonsterHitPoints delta ->
             "Deal " ++ String.fromInt delta
+
+        DealDamage damage ->
+            "Damage " ++ String.fromInt damage

@@ -16,6 +16,12 @@ import Requirement.Battle as Requirement exposing (Requirement)
 runEffect : Effect -> ( Global, Battle, Cmd Msg ) -> ( Global, Battle, Cmd Msg )
 runEffect effect ( global, battle, cmd ) =
     case effect of
+        Effect.EndTurn ->
+            ( global
+            , battle |> Battle.tick
+            , cmd
+            )
+
         Effect.ChangeActionPoints actionPointDelta ->
             ( global
             , { battle | actionPoints = battle.actionPoints |> Bounded.add actionPointDelta }
@@ -35,6 +41,19 @@ runEffect effect ( global, battle, cmd ) =
 
                 newMonster =
                     { monster | hitPoints = monster.hitPoints |> Bounded.add hitPointDelta }
+            in
+            ( global
+            , { battle | monster = newMonster }
+            , cmd
+            )
+
+        Effect.DealDamage damage ->
+            let
+                monster =
+                    battle.monster
+
+                newMonster =
+                    { monster | hitPoints = monster.hitPoints |> Bounded.subtract damage }
             in
             ( global
             , { battle | monster = newMonster }
