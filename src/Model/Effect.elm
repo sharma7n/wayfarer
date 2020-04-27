@@ -14,6 +14,7 @@ import Lib.Bounded as Bounded
 import Model exposing (Model)
 import Model.Battle
 import Model.Dungeon
+import Model.Fane
 import Model.Global
 import Model.Home
 import Msg exposing (Msg)
@@ -46,6 +47,19 @@ runOne effect ( model, cmd ) =
                     { model
                         | global = newGlobal
                         , scene = Scene.Home newHome
+                    }
+            in
+            ( newModel, newCmd )
+
+        ( Effect.Fane faneEffect, Scene.MapSelect _ ) ->
+            let
+                ( newGlobal, newCmd ) =
+                    ( model.global, cmd )
+                        |> Model.Fane.runEffect faneEffect
+
+                newModel =
+                    { model
+                        | global = newGlobal
                     }
             in
             ( newModel, newCmd )

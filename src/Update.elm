@@ -1,12 +1,13 @@
 module Update exposing (update)
 
 import Domain.Battle as Battle exposing (Battle)
-import Domain.Choice as Choice exposing (Choice)
 import Domain.Dungeon as Dungeon exposing (Dungeon)
 import Domain.Map as Map exposing (Map)
 import Domain.Scene as Scene exposing (Scene)
+import Lib.Counter as Counter exposing (Counter)
 import Model exposing (Model)
 import Model.Effect
+import Model.Finalizer
 import Model.Requirement
 import Msg exposing (Msg)
 import Random
@@ -15,12 +16,31 @@ import Random
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case ( msg, model.scene ) of
-        ( Msg.SystemAppliedEffects effects, _ ) ->
-            ( model, Cmd.none )
-                |> Model.Effect.run effects
+        ( Msg.Decorator requirements effects inner, _ ) ->
+            if model |> Model.Requirement.satisfies requirements then
+                let
+                    ( newModel, newCmd ) =
+                        ( model, Cmd.none )
+                            |> Model.Requirement.run requirements
+                            |> Model.Effect.run effects
+                            |> Model.Finalizer.run
+
+                    ( newModel2, newCmdB ) =
+                        update inner newModel
+                in
+                ( newModel2, Cmd.batch [ newCmd, newCmdB ] )
+
+            else
+                ( model, Cmd.none )
+
+        ( Msg.UserSelectedMapSelect, Scene.Home _ ) ->
+            ( { model | scene = Scene.MapSelect model.scene }, Cmd.none )
 
         ( Msg.UserSelectedScene scene, _ ) ->
             ( { model | scene = scene }, Cmd.none )
+
+        ( Msg.UserSelectedShop shop, _ ) ->
+            ( { model | scene = Scene.Shop shop model.scene }, Cmd.none )
 
         ( Msg.UserSelectedMap map, Scene.MapSelect _ ) ->
             ( model, Random.generate Msg.SystemGotDungeon (Dungeon.generator map) )
@@ -33,13 +53,24 @@ update msg model =
                 newDungeon =
                     { dungeon
                         | selectedEvent = Just event
+                        , events =
+                            dungeon.events
+                                |> Counter.remove event
                     }
 
                 newModel =
                     { model | scene = Scene.Dungeon newDungeon }
+
+                ( newModel2, newCmd ) =
+                    ( newModel, Cmd.none )
+                        |> Model.Requirement.run event.requirements
+                        |> Model.Effect.run event.effects
             in
-            ( newModel, Cmd.none )
-                |> Model.Effect.run event.effects
+            if model |> Model.Requirement.satisfies event.requirements then
+                ( newModel2, newCmd )
+
+            else
+                ( model, Cmd.none )
 
         ( Msg.SystemGotMonster monster, Scene.Dungeon dungeon ) ->
             let
@@ -54,21 +85,12 @@ update msg model =
         ( Msg.SystemGotEvent event, Scene.Dungeon dungeon ) ->
             let
                 newDungeon =
-                    { dungeon | events = event :: dungeon.events }
+                    { dungeon | events = dungeon.events |> Counter.insert event }
 
                 newModel =
                     { model | scene = Scene.Dungeon newDungeon }
             in
             ( newModel, Cmd.none )
-
-        ( Msg.UserSelectedChoice choice, _ ) ->
-            if model |> Model.Requirement.satisfies choice.requirements then
-                ( model, Cmd.none )
-                    |> Model.Requirement.run choice.requirements
-                    |> Model.Effect.run choice.effects
-
-            else
-                ( model, Cmd.none )
 
         _ ->
             ( model, Cmd.none )

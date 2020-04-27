@@ -1,12 +1,13 @@
 module Domain.Map exposing
     ( Map
-    , choice
+    , beginning
+    , getByHash
     , toString
     )
 
-import Domain.Choice as Choice exposing (Choice)
 import Domain.Effect as Effect exposing (Effect)
 import Domain.Environ as Environ exposing (Environ)
+import Effect.Fane
 
 
 type alias Map =
@@ -24,9 +25,23 @@ toString map =
         |> String.join " "
 
 
-choice : Map -> Choice
-choice map =
-    { label = toString map
-    , requirements = []
-    , effects = []
+getByHash : String -> Maybe Map
+getByHash hash =
+    case hash of
+        "beginning" ->
+            Just beginning
+
+        _ ->
+            Nothing
+
+
+
+-- MAP OBJECTS
+
+
+beginning : Map
+beginning =
+    { hash = "beginning"
+    , environ = Environ.Cave
+    , level = 1
     }

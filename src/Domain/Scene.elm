@@ -9,6 +9,7 @@ import Domain.Dungeon as Dungeon exposing (Dungeon)
 import Domain.Home as Home exposing (Home)
 import Domain.Map as Map exposing (Map)
 import Domain.Object as Object exposing (Object)
+import Domain.Shop as Shop exposing (Shop)
 
 
 type Scene
@@ -17,7 +18,7 @@ type Scene
     | Dungeon Dungeon
     | Battle Battle Scene
     | BossBattle Battle
-    | Shop (List Object) Scene
+    | Shop Shop Scene
     | GameOver
 
 

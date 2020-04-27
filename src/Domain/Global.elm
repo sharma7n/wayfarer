@@ -29,7 +29,7 @@ init =
     , maxHitPoints = 10
     , gold = 0
     , maps =
-        [ { hash = "beginning", environ = Environ.Plains, level = 1 }
+        [ Map.beginning
         ]
     , items = []
     , equipment = []

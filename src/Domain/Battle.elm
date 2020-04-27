@@ -1,9 +1,10 @@
 module Domain.Battle exposing
     ( Battle
-    , modify
     , new
+    , tick
     )
 
+import Domain.Action as Action exposing (Action)
 import Domain.Monster as Monster exposing (Monster)
 import Effect.Battle as Effect exposing (Effect)
 import Lib.Bounded as Bounded
@@ -13,6 +14,8 @@ type alias Battle =
     { actionPoints : Int
     , generatedBlock : Int
     , monster : Monster
+    , actions : List Action
+    , round : Int
     }
 
 
@@ -21,24 +24,17 @@ new monster =
     { actionPoints = 3
     , generatedBlock = 0
     , monster = monster
+    , actions =
+        [ "attack", "defend", "wait" ]
+            |> List.filterMap Action.getById
+    , round = 1
     }
 
 
-modify : Effect -> Battle -> Battle
-modify effect battle =
-    case effect of
-        Effect.ChangeActionPoints actionPointDelta ->
-            { battle | actionPoints = battle.actionPoints |> Bounded.add actionPointDelta }
-
-        Effect.ChangeGeneratedBlock generatedBlockDelta ->
-            { battle | generatedBlock = battle.generatedBlock |> Bounded.add generatedBlockDelta }
-
-        Effect.ChangeMonsterHitPoints monsterHitPointDelta ->
-            let
-                monster =
-                    battle.monster
-
-                newMonster =
-                    { monster | hitPoints = monster.hitPoints |> Bounded.add monsterHitPointDelta }
-            in
-            { battle | monster = newMonster }
+tick : Battle -> Battle
+tick battle =
+    { battle
+        | actionPoints = 3
+        , generatedBlock = 0
+        , round = battle.round + 1
+    }

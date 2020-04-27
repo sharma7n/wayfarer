@@ -8,6 +8,7 @@ import Domain.Global as Global exposing (Global)
 import Domain.Map as Map exposing (Map)
 import Effect.Dungeon as Effect exposing (Effect)
 import Lib.Bounded as Bounded
+import Lib.Counter as Counter exposing (Counter)
 import Random
 
 
@@ -15,7 +16,7 @@ type alias Dungeon =
     { map : Map
     , safety : Int
     , path : Int
-    , events : List Event
+    , events : Counter Event
     , selectedEvent : Maybe Event
     }
 
@@ -33,7 +34,9 @@ generator map =
             Random.constant 0
 
         eventsGenerator =
-            Random.list 3 (Event.generator map)
+            Event.generator map
+                |> Random.list 3
+                |> Random.map (Counter.fromList .id Event.getById)
 
         selectedEventGenerator =
             Random.constant Nothing

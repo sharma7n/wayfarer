@@ -8,6 +8,7 @@ type Effect
     = ChangeActionPoints Int
     | ChangeGeneratedBlock Int
     | ChangeMonsterHitPoints Int
+    | DealDamage Int
 
 
 toString : Effect -> String
@@ -21,3 +22,6 @@ toString effect =
 
         ChangeMonsterHitPoints delta ->
             "Deal " ++ String.fromInt delta
+
+        DealDamage damage ->
+            "Damage " ++ String.fromInt damage

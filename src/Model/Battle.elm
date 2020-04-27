@@ -41,6 +41,19 @@ runEffect effect ( global, battle, cmd ) =
             , cmd
             )
 
+        Effect.DealDamage damage ->
+            let
+                monster =
+                    battle.monster
+
+                newMonster =
+                    { monster | hitPoints = monster.hitPoints |> Bounded.subtract damage }
+            in
+            ( global
+            , { battle | monster = newMonster }
+            , cmd
+            )
+
 
 runRequirement : Requirement -> ( Global, Battle, Cmd Msg ) -> ( Global, Battle, Cmd Msg )
 runRequirement requirement ( global, battle, cmd ) =

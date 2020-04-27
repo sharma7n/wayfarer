@@ -1,7 +1,6 @@
 module View.Scene exposing (view)
 
 import Domain.Battle as Battle exposing (Battle)
-import Domain.Choice as Choice exposing (Choice)
 import Domain.Dungeon as Dungeon exposing (Dungeon)
 import Domain.Effect as Effect exposing (Effect)
 import Domain.Event as Event exposing (Event)
@@ -11,12 +10,15 @@ import Domain.Map as Map exposing (Map)
 import Domain.Object as Object exposing (Object)
 import Domain.Requirement as Requirement exposing (Requirement)
 import Domain.Scene as Scene exposing (Scene)
+import Domain.Shop as Shop exposing (Shop)
 import Effect.Global
 import Effect.Home
+import Lib.Counter as Counter exposing (Counter)
 import Model exposing (Model)
 import Msg exposing (Msg)
 import Requirement.Global
 import Requirement.Home
+import View.Choice
 import View.Ui as Ui exposing (Ui)
 
 
@@ -71,28 +73,9 @@ viewHome home model =
                     Ui.description "Description"
                 }
         , choices =
-            [ { label = "Explore"
-              , requirements =
-                    []
-              , effects =
-                    [ Effect.Home <| Effect.Home.Fane
-                    ]
-              }
-            , { label = "Shop"
-              , requirements =
-                    []
-              , effects =
-                    []
-              }
-            , { label = "Inn"
-              , requirements =
-                    [ Requirement.Global <| Requirement.Global.GoldCost (model.global.maxHitPoints - model.global.hitPoints)
-                    , Requirement.Home <| Requirement.Home.TimeCost 3
-                    ]
-              , effects =
-                    [ Effect.Global <| Effect.Global.ChangeHitPoints (model.global.maxHitPoints - model.global.hitPoints)
-                    ]
-              }
+            [ View.Choice.explore
+            , View.Choice.shop { name = "Main Shop", stock = [] }
+            , View.Choice.inn model.global
             ]
         }
 
@@ -106,7 +89,7 @@ viewMapSelect model =
             Ui.context
                 [ Ui.info
                     { label = Ui.label "HP"
-                    , quantity = Ui.quantity model.global.hitPoints
+                    , quantity = Ui.ratio model.global.hitPoints model.global.maxHitPoints
                     }
                 ]
         , stage =
@@ -119,7 +102,7 @@ viewMapSelect model =
                     Ui.description "Description"
                 }
         , choices =
-            List.map Map.choice model.global.maps
+            List.map View.Choice.map model.global.maps
         }
 
 
@@ -155,12 +138,12 @@ viewDungeon dungeon model =
                     }
                 , Ui.info
                     { label = Ui.label "HP"
-                    , quantity = Ui.quantity model.global.hitPoints
+                    , quantity = Ui.ratio model.global.hitPoints model.global.maxHitPoints
                     }
                 ]
         , stage = Ui.stage stage
         , choices =
-            List.map Event.choice dungeon.events
+            List.map View.Choice.event (dungeon.events |> Counter.toList)
         }
 
 
@@ -172,8 +155,24 @@ viewBattle battle ambient model =
         , context =
             Ui.context
                 [ Ui.info
+                    { label = Ui.label "Round"
+                    , quantity = Ui.quantity battle.round
+                    }
+                , Ui.info
                     { label = Ui.label "HP"
-                    , quantity = Ui.quantity model.global.hitPoints
+                    , quantity = Ui.ratio model.global.hitPoints model.global.maxHitPoints
+                    }
+                , Ui.info
+                    { label = Ui.label "AP"
+                    , quantity = Ui.quantity battle.actionPoints
+                    }
+                , Ui.info
+                    { label = Ui.label "Block"
+                    , quantity = Ui.quantity battle.generatedBlock
+                    }
+                , Ui.info
+                    { label = Ui.label "Monster HP"
+                    , quantity = Ui.quantity battle.monster.hitPoints
                     }
                 ]
         , stage =
@@ -186,7 +185,7 @@ viewBattle battle ambient model =
                     Ui.description "Description"
                 }
         , choices =
-            []
+            List.map View.Choice.action battle.actions
         }
 
 
@@ -199,7 +198,7 @@ viewBossBattle battle model =
             Ui.context
                 [ Ui.info
                     { label = Ui.label "HP"
-                    , quantity = Ui.quantity model.global.hitPoints
+                    , quantity = Ui.ratio model.global.hitPoints model.global.maxHitPoints
                     }
                 ]
         , stage =
@@ -216,8 +215,8 @@ viewBossBattle battle model =
         }
 
 
-viewShop : List Object -> Scene -> Model -> Ui Msg
-viewShop stock ambient model =
+viewShop : Shop -> Scene -> Model -> Ui Msg
+viewShop shop ambient model =
     Ui.screen
         { header =
             Ui.header model.scene
@@ -225,13 +224,13 @@ viewShop stock ambient model =
             Ui.context
                 [ Ui.info
                     { label = Ui.label "HP"
-                    , quantity = Ui.quantity model.global.hitPoints
+                    , quantity = Ui.ratio model.global.hitPoints model.global.maxHitPoints
                     }
                 ]
         , stage =
             Ui.stage
                 { label =
-                    Ui.label "Shop"
+                    Ui.label shop.name
                 , image =
                     Ui.image "Image"
                 , description =
@@ -251,7 +250,7 @@ viewGameOver model =
             Ui.context
                 [ Ui.info
                     { label = Ui.label "HP"
-                    , quantity = Ui.quantity model.global.hitPoints
+                    , quantity = Ui.ratio model.global.hitPoints model.global.maxHitPoints
                     }
                 ]
         , stage =
