@@ -29,15 +29,17 @@ explore =
     , requirements = []
     , effects = []
     , msg = Msg.UserSelectedMapSelect
+    , quantity = Nothing
     }
 
 
-event : Event -> Ui.Choice
-event e =
+event : ( Event, Int ) -> Ui.Choice
+event ( e, count ) =
     { label = e.name
     , requirements = e.requirements
     , effects = e.effects
     , msg = Msg.UserSelectedEvent e
+    , quantity = Just count
     }
 
 
@@ -47,6 +49,7 @@ map m =
     , requirements = []
     , effects = []
     , msg = Msg.UserSelectedMap m
+    , quantity = Nothing
     }
 
 
@@ -56,6 +59,7 @@ shop s =
     , requirements = []
     , effects = []
     , msg = Msg.UserSelectedShop s
+    , quantity = Nothing
     }
 
 
@@ -75,6 +79,7 @@ inn global =
     , requirements = requirements
     , effects = effects
     , msg = Msg.Decorator requirements effects Msg.NoOp
+    , quantity = Nothing
     }
 
 
@@ -84,4 +89,5 @@ action a =
     , requirements = a.requirements
     , effects = a.effects
     , msg = Msg.Decorator a.requirements a.effects Msg.NoOp
+    , quantity = Nothing
     }

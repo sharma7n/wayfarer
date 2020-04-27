@@ -278,11 +278,25 @@ type alias Choice =
     , requirements : List Requirement
     , effects : List Effect
     , msg : Msg
+    , quantity : Maybe Int
     }
 
 
 choiceElement : Choice -> Element Msg
 choiceElement choice =
+    let
+        qtyElement =
+            case choice.quantity of
+                Just qty ->
+                    Element.el
+                        [ Element.Font.size 30
+                        , Element.padding 15
+                        ]
+                        (Element.text <| String.fromInt qty)
+
+                Nothing ->
+                    Element.none
+    in
     Element.Input.button
         [ Element.Background.color <| Element.rgb255 255 255 255
         , Element.Border.width 1
@@ -292,17 +306,22 @@ choiceElement choice =
         { onPress =
             Just choice.msg
         , label =
-            Element.column
-                []
-                [ labelElement <| label choice.label
-                , Element.row
-                    [ Element.spacing 5
+            Element.row
+                [ Element.spacing 10
+                ]
+                [ qtyElement
+                , Element.column
+                    []
+                    [ labelElement <| label choice.label
+                    , Element.row
+                        [ Element.spacing 5
+                        ]
+                        (List.map (Requirement.toString >> Element.text) choice.requirements)
+                    , Element.row
+                        [ Element.spacing 5
+                        ]
+                        (List.map (Effect.toString >> Element.text) choice.effects)
                     ]
-                    (List.map (Requirement.toString >> Element.text) choice.requirements)
-                , Element.row
-                    [ Element.spacing 5
-                    ]
-                    (List.map (Effect.toString >> Element.text) choice.effects)
                 ]
         }
 

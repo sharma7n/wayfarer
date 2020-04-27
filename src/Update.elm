@@ -4,6 +4,7 @@ import Domain.Battle as Battle exposing (Battle)
 import Domain.Dungeon as Dungeon exposing (Dungeon)
 import Domain.Map as Map exposing (Map)
 import Domain.Scene as Scene exposing (Scene)
+import Lib.Counter as Counter exposing (Counter)
 import Model exposing (Model)
 import Model.Effect
 import Model.Finalizer
@@ -52,6 +53,9 @@ update msg model =
                 newDungeon =
                     { dungeon
                         | selectedEvent = Just event
+                        , events =
+                            dungeon.events
+                                |> Counter.remove event
                     }
 
                 newModel =
@@ -81,7 +85,7 @@ update msg model =
         ( Msg.SystemGotEvent event, Scene.Dungeon dungeon ) ->
             let
                 newDungeon =
-                    { dungeon | events = event :: dungeon.events }
+                    { dungeon | events = dungeon.events |> Counter.insert event }
 
                 newModel =
                     { model | scene = Scene.Dungeon newDungeon }

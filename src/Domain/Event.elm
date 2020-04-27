@@ -1,6 +1,7 @@
 module Domain.Event exposing
     ( Event
     , generator
+    , getById
     )
 
 import Domain.Effect as Effect exposing (Effect)
@@ -39,6 +40,25 @@ generator map =
 
         _ ->
             Random.constant empty
+
+
+getById : String -> Maybe Event
+getById id =
+    case id of
+        "empty" ->
+            Just empty
+
+        "encounter" ->
+            Just encounter
+
+        "cavern" ->
+            Just cavern
+
+        "ropeBridge" ->
+            Just ropeBridge
+
+        _ ->
+            Nothing
 
 
 

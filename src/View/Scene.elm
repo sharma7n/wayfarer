@@ -13,6 +13,7 @@ import Domain.Scene as Scene exposing (Scene)
 import Domain.Shop as Shop exposing (Shop)
 import Effect.Global
 import Effect.Home
+import Lib.Counter as Counter exposing (Counter)
 import Model exposing (Model)
 import Msg exposing (Msg)
 import Requirement.Global
@@ -142,7 +143,7 @@ viewDungeon dungeon model =
                 ]
         , stage = Ui.stage stage
         , choices =
-            List.map View.Choice.event dungeon.events
+            List.map View.Choice.event (dungeon.events |> Counter.toList)
         }
 
 
