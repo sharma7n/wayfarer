@@ -28,6 +28,9 @@ getById id =
         "defend" ->
             Just defend
 
+        "wait" ->
+            Just wait
+
         _ ->
             Nothing
 
@@ -59,4 +62,16 @@ defend =
     , effects =
         [ Effect.Battle <| Effect.Battle.ChangeGeneratedBlock 1
         ]
+    }
+
+
+wait : Action
+wait =
+    { id = "wait"
+    , name = "Wait"
+    , requirements =
+        [ Requirement.Battle <| Requirement.Battle.ActionPointCost 1
+        ]
+    , effects =
+        []
     }

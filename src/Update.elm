@@ -6,6 +6,7 @@ import Domain.Map as Map exposing (Map)
 import Domain.Scene as Scene exposing (Scene)
 import Model exposing (Model)
 import Model.Effect
+import Model.Finalizer
 import Model.Requirement
 import Msg exposing (Msg)
 import Random
@@ -21,6 +22,7 @@ update msg model =
                         ( model, Cmd.none )
                             |> Model.Requirement.run requirements
                             |> Model.Effect.run effects
+                            |> Model.Finalizer.run
 
                     ( newModel2, newCmdB ) =
                         update inner newModel

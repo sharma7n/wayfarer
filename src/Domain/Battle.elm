@@ -25,7 +25,7 @@ new monster =
     , generatedBlock = 0
     , monster = monster
     , actions =
-        [ "attack", "defend" ]
+        [ "attack", "defend", "wait" ]
             |> List.filterMap Action.getById
     , round = 1
     }

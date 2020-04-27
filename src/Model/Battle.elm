@@ -16,12 +16,6 @@ import Requirement.Battle as Requirement exposing (Requirement)
 runEffect : Effect -> ( Global, Battle, Cmd Msg ) -> ( Global, Battle, Cmd Msg )
 runEffect effect ( global, battle, cmd ) =
     case effect of
-        Effect.EndTurn ->
-            ( global
-            , battle |> Battle.tick
-            , cmd
-            )
-
         Effect.ChangeActionPoints actionPointDelta ->
             ( global
             , { battle | actionPoints = battle.actionPoints |> Bounded.add actionPointDelta }

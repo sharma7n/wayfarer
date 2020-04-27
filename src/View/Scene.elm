@@ -154,6 +154,10 @@ viewBattle battle ambient model =
         , context =
             Ui.context
                 [ Ui.info
+                    { label = Ui.label "Round"
+                    , quantity = Ui.quantity battle.round
+                    }
+                , Ui.info
                     { label = Ui.label "HP"
                     , quantity = Ui.ratio model.global.hitPoints model.global.maxHitPoints
                     }
