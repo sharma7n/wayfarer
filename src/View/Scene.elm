@@ -73,10 +73,11 @@ viewHome home model =
                     Ui.description "Description"
                 }
         , choices =
-            [ View.Choice.explore
-            , View.Choice.shop { name = "Main Shop", stock = [] }
-            , View.Choice.inn model.global
-            ]
+            Just <|
+                [ View.Choice.explore
+                , View.Choice.shop { name = "Main Shop", stock = [] }
+                , View.Choice.inn model.global
+                ]
         }
 
 
@@ -102,7 +103,7 @@ viewMapSelect model =
                     Ui.description "Description"
                 }
         , choices =
-            List.map View.Choice.map model.global.maps
+            Just <| List.map View.Choice.map model.global.maps
         }
 
 
@@ -143,7 +144,7 @@ viewDungeon dungeon model =
                 ]
         , stage = Ui.stage stage
         , choices =
-            List.map View.Choice.event (dungeon.events |> Counter.toList)
+            Just <| List.map View.Choice.event (dungeon.events |> Counter.toList)
         }
 
 
@@ -174,6 +175,10 @@ viewBattle battle ambient model =
                     { label = Ui.label "Monster HP"
                     , quantity = Ui.quantity battle.monster.hitPoints
                     }
+                , Ui.info
+                    { label = Ui.label "Monster ATK"
+                    , quantity = Ui.quantity battle.monster.attack
+                    }
                 ]
         , stage =
             Ui.stage
@@ -185,7 +190,7 @@ viewBattle battle ambient model =
                     Ui.description "Description"
                 }
         , choices =
-            List.map View.Choice.action battle.actions
+            Just <| List.map View.Choice.action battle.actions
         }
 
 
@@ -197,8 +202,28 @@ viewBossBattle battle model =
         , context =
             Ui.context
                 [ Ui.info
+                    { label = Ui.label "Round"
+                    , quantity = Ui.quantity battle.round
+                    }
+                , Ui.info
                     { label = Ui.label "HP"
                     , quantity = Ui.ratio model.global.hitPoints model.global.maxHitPoints
+                    }
+                , Ui.info
+                    { label = Ui.label "AP"
+                    , quantity = Ui.quantity battle.actionPoints
+                    }
+                , Ui.info
+                    { label = Ui.label "Block"
+                    , quantity = Ui.quantity battle.generatedBlock
+                    }
+                , Ui.info
+                    { label = Ui.label "Monster HP"
+                    , quantity = Ui.quantity battle.monster.hitPoints
+                    }
+                , Ui.info
+                    { label = Ui.label "Monster ATK"
+                    , quantity = Ui.quantity battle.monster.attack
                     }
                 ]
         , stage =
@@ -211,7 +236,7 @@ viewBossBattle battle model =
                     Ui.description "Description"
                 }
         , choices =
-            []
+            Just <| []
         }
 
 
@@ -237,7 +262,7 @@ viewShop shop ambient model =
                     Ui.description "Description"
                 }
         , choices =
-            []
+            Just <| []
         }
 
 
@@ -263,5 +288,5 @@ viewGameOver model =
                     Ui.description "Description"
                 }
         , choices =
-            []
+            Nothing
         }

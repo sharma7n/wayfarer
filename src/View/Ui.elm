@@ -91,7 +91,7 @@ quantityElement qty =
             let
                 color =
                     if Basics.toFloat curr <= (0.3 * Basics.toFloat max_) then
-                        Element.rgb255 150 0 0
+                        Element.rgb255 200 0 0
 
                     else if Basics.toFloat curr <= (0.6 * Basics.toFloat max_) then
                         Element.rgb255 250 175 75
@@ -330,7 +330,7 @@ type alias Screen =
     { header : Header
     , context : Context
     , stage : Stage
-    , choices : List Choice
+    , choices : Maybe (List Choice)
     }
 
 
@@ -360,15 +360,25 @@ screen o =
                     ]
                     [ stageElement o.stage
                     ]
-                , Element.column
-                    [ Element.padding 10
-                    , Element.Background.color <| Element.rgb255 250 225 200
-                    , Element.centerX
-                    , Element.width <| Element.px 300
-                    , Element.Border.width 1
-                    , Element.alignTop
-                    , Element.spacing 10
-                    ]
-                    (List.map choiceElement o.choices)
+                , screenChoices o.choices
                 ]
             ]
+
+
+screenChoices : Maybe (List Choice) -> Element Msg
+screenChoices choices =
+    case choices of
+        Just cs ->
+            Element.column
+                [ Element.padding 10
+                , Element.Background.color <| Element.rgb255 250 225 200
+                , Element.centerX
+                , Element.width <| Element.px 300
+                , Element.Border.width 1
+                , Element.alignTop
+                , Element.spacing 10
+                ]
+                (List.map choiceElement cs)
+
+        Nothing ->
+            Element.none

@@ -15,9 +15,12 @@ type Msg
     | Decorator (List Requirement) (List Effect) Msg
     | SystemGotDungeon Dungeon
     | SystemGotMonster Monster
+    | SystemGotBossMonster Monster
     | SystemGotEvent Event
     | UserSelectedMapSelect
     | UserSelectedShop Shop
     | UserSelectedScene Scene
     | UserSelectedMap Map
     | UserSelectedEvent Event
+    | UserSelectedRevive
+    | UserSelectedReincarnate

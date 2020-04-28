@@ -82,6 +82,16 @@ update msg model =
             in
             ( newModel, Cmd.none )
 
+        ( Msg.SystemGotBossMonster monster, Scene.Dungeon _ ) ->
+            let
+                newScene =
+                    Scene.BossBattle (Battle.new monster)
+
+                newModel =
+                    { model | scene = newScene }
+            in
+            ( newModel, Cmd.none )
+
         ( Msg.SystemGotEvent event, Scene.Dungeon dungeon ) ->
             let
                 newDungeon =
@@ -91,6 +101,15 @@ update msg model =
                     { model | scene = Scene.Dungeon newDungeon }
             in
             ( newModel, Cmd.none )
+
+        ( Msg.UserSelectedRevive, Scene.GameOver ) ->
+            ( model
+                |> Model.mapGlobal (\g -> { g | hitPoints = 1 })
+            , Cmd.none
+            )
+
+        ( Msg.UserSelectedReincarnate, Scene.GameOver ) ->
+            ( Model.init, Cmd.none )
 
         _ ->
             ( model, Cmd.none )

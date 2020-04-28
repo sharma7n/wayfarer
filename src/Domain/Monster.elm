@@ -1,5 +1,6 @@
 module Domain.Monster exposing
     ( Monster
+    , bossGenerator
     , generator
     , getById
     )
@@ -17,6 +18,7 @@ type alias Monster =
     , frequency : Float
     , environs : List Environ
     , hitPoints : Int
+    , attack : Int
     , behaviors : Distribution Behavior
     }
 
@@ -37,6 +39,12 @@ all =
     ]
 
 
+bosses : List Monster
+bosses =
+    [ ogre
+    ]
+
+
 generator : Map -> Random.Generator Monster
 generator map =
     let
@@ -53,6 +61,22 @@ generator map =
             Random.constant missingno
 
 
+bossGenerator : Map -> Random.Generator Monster
+bossGenerator map =
+    let
+        validBossMonsters =
+            bosses
+                |> List.filter (\m -> List.member map.environ m.environs)
+                |> List.map (\m -> ( m.frequency, m ))
+    in
+    case validBossMonsters of
+        b :: bs ->
+            Distribution.random <| Distribution.new b bs
+
+        [] ->
+            Random.constant missingno
+
+
 
 -- MONSTER OBJECTS
 
@@ -64,6 +88,7 @@ missingno =
     , frequency = 0.0
     , environs = []
     , hitPoints = 1
+    , attack = 0
     , behaviors =
         Distribution.new
             ( 1, Behavior.DoNothing )
@@ -78,6 +103,22 @@ slime =
     , frequency = 1.0
     , environs = Environ.all
     , hitPoints = 5
+    , attack = 4
+    , behaviors =
+        Distribution.new
+            ( 1, Behavior.Attack )
+            []
+    }
+
+
+ogre : Monster
+ogre =
+    { id = "ogre"
+    , name = "Ogre"
+    , frequency = 1.0
+    , environs = Environ.all
+    , hitPoints = 9
+    , attack = 5
     , behaviors =
         Distribution.new
             ( 1, Behavior.Attack )
