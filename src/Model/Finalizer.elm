@@ -25,10 +25,7 @@ run ( model, cmd ) =
                 ( model, cmd )
 
         Scene.Battle battle ambient ->
-            if model.global.hitPoints <= 0 then
-                ( { model | scene = Scene.GameOver }, cmd )
-
-            else if battle.monster.hitPoints <= 0 then
+            if battle.monster.hitPoints <= 0 then
                 ( { model | scene = ambient }, cmd )
 
             else if battle.actionPoints <= 0 then
@@ -40,11 +37,7 @@ run ( model, cmd ) =
                         model.global.hitPoints |> Bounded.subtract damage
 
                     newScene =
-                        if newHitPoints <= 0 then
-                            Scene.GameOver
-
-                        else
-                            Scene.Battle (battle |> Battle.tick) ambient
+                        Scene.Battle (battle |> Battle.tick) ambient
 
                     global =
                         model.global
@@ -64,10 +57,7 @@ run ( model, cmd ) =
                 ( model, cmd )
 
         Scene.BossBattle bossBattle ->
-            if model.global.hitPoints <= 0 then
-                ( { model | scene = Scene.GameOver }, cmd )
-
-            else if bossBattle.monster.hitPoints <= 0 then
+            if bossBattle.monster.hitPoints <= 0 then
                 ( { model | scene = Scene.Home Home.init }, cmd )
 
             else if bossBattle.actionPoints <= 0 then
@@ -79,11 +69,7 @@ run ( model, cmd ) =
                         model.global.hitPoints |> Bounded.subtract damage
 
                     newScene =
-                        if newHitPoints <= 0 then
-                            Scene.GameOver
-
-                        else
-                            Scene.BossBattle (bossBattle |> Battle.tick)
+                        Scene.BossBattle (bossBattle |> Battle.tick)
 
                     global =
                         model.global

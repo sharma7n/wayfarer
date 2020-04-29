@@ -102,14 +102,5 @@ update msg model =
             in
             ( newModel, Cmd.none )
 
-        ( Msg.UserSelectedRevive, Scene.GameOver ) ->
-            ( model
-                |> Model.mapGlobal (\g -> { g | hitPoints = 1 })
-            , Cmd.none
-            )
-
-        ( Msg.UserSelectedReincarnate, Scene.GameOver ) ->
-            ( Model.init, Cmd.none )
-
         _ ->
             ( model, Cmd.none )

@@ -19,7 +19,6 @@ type Scene
     | Battle Battle Scene
     | BossBattle Battle
     | Shop Shop Scene
-    | GameOver
 
 
 toString : Scene -> String
@@ -42,9 +41,6 @@ toString scene =
 
         Shop _ _ ->
             "Shop"
-
-        GameOver ->
-            "Game Over"
 
 
 ambient : Scene -> Maybe Scene

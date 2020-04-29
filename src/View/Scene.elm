@@ -43,9 +43,6 @@ view model =
         Scene.Shop stock ambient ->
             viewShop stock ambient model
 
-        Scene.GameOver ->
-            viewGameOver model
-
 
 viewHome : Home -> Model -> Ui Msg
 viewHome home model =
@@ -263,30 +260,4 @@ viewShop shop ambient model =
                 }
         , choices =
             Just <| []
-        }
-
-
-viewGameOver : Model -> Ui Msg
-viewGameOver model =
-    Ui.screen
-        { header =
-            Ui.header model.scene
-        , context =
-            Ui.context
-                [ Ui.info
-                    { label = Ui.label "HP"
-                    , quantity = Ui.ratio model.global.hitPoints model.global.maxHitPoints
-                    }
-                ]
-        , stage =
-            Ui.stage
-                { label =
-                    Ui.label "Stage"
-                , image =
-                    Ui.image "Image"
-                , description =
-                    Ui.description "Description"
-                }
-        , choices =
-            Nothing
         }
