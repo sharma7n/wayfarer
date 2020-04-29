@@ -1,6 +1,7 @@
 module Lib.Bounded exposing
     ( add
     , addCapped
+    , capBy
     , subtract
     )
 
@@ -20,3 +21,8 @@ addCapped cap delta base =
 subtract : Int -> Int -> Int
 subtract delta base =
     max 0 (base - delta)
+
+
+capBy : Int -> Int -> Int
+capBy cap quantity =
+    min quantity cap

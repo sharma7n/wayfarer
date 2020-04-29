@@ -1,6 +1,7 @@
 module View.Scene exposing (view)
 
 import Domain.Battle as Battle exposing (Battle)
+import Domain.Computed as Computed exposing (Computed)
 import Domain.Dungeon as Dungeon exposing (Dungeon)
 import Domain.Effect as Effect exposing (Effect)
 import Domain.Event as Event exposing (Event)
@@ -70,7 +71,7 @@ viewHome home model =
                     Ui.description "Description"
                 }
         , choices =
-            Just <|
+            View.Choice.choices (Computed.fromGlobal model.global)
                 [ View.Choice.explore
                 , View.Choice.shop { name = "Main Shop", stock = [] }
                 , View.Choice.inn model.global
@@ -100,7 +101,7 @@ viewMapSelect model =
                     Ui.description "Description"
                 }
         , choices =
-            Just <| List.map View.Choice.map model.global.maps
+            View.Choice.choices (Computed.fromGlobal model.global) <| List.map View.Choice.map model.global.maps
         }
 
 
@@ -141,7 +142,7 @@ viewDungeon dungeon model =
                 ]
         , stage = Ui.stage stage
         , choices =
-            Just <| List.map View.Choice.event (dungeon.events |> Counter.toList)
+            View.Choice.choices (Computed.fromGlobal model.global) <| List.map View.Choice.event (dungeon.events |> Counter.toList)
         }
 
 
@@ -187,7 +188,7 @@ viewBattle battle ambient model =
                     Ui.description "Description"
                 }
         , choices =
-            Just <| List.map View.Choice.action battle.actions
+            View.Choice.choices (Computed.fromGlobal model.global) <| List.map View.Choice.action battle.actions
         }
 
 
@@ -233,7 +234,7 @@ viewBossBattle battle model =
                     Ui.description "Description"
                 }
         , choices =
-            Just <| []
+            View.Choice.choices (Computed.fromGlobal model.global) []
         }
 
 
@@ -259,5 +260,5 @@ viewShop shop ambient model =
                     Ui.description "Description"
                 }
         , choices =
-            Just <| []
+            View.Choice.choices (Computed.fromGlobal model.global) []
         }

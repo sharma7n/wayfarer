@@ -33,6 +33,21 @@ runRequirement requirement ( global, cmd ) =
             , cmd
             )
 
+        Requirement.MaxHitPointCost cost ->
+            let
+                newMaxHitPoints =
+                    global.maxHitPoints |> Bounded.subtract cost
+
+                newGlobal =
+                    { global
+                        | maxHitPoints = newMaxHitPoints
+                        , hitPoints = global.hitPoints |> Bounded.capBy newMaxHitPoints
+                    }
+            in
+            ( newGlobal
+            , cmd
+            )
+
         Requirement.GoldCost cost ->
             ( { global | gold = global.gold |> Bounded.subtract cost }
             , cmd
@@ -44,6 +59,9 @@ satisfiesRequirement requirement global =
     case requirement of
         Requirement.HitPointCost cost ->
             global.hitPoints >= cost
+
+        Requirement.MaxHitPointCost cost ->
+            global.maxHitPoints > cost
 
         Requirement.GoldCost cost ->
             global.gold >= cost

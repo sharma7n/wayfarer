@@ -2,6 +2,7 @@ module Update exposing (update)
 
 import Domain.Battle as Battle exposing (Battle)
 import Domain.Dungeon as Dungeon exposing (Dungeon)
+import Domain.Home as Home exposing (Home)
 import Domain.Map as Map exposing (Map)
 import Domain.Scene as Scene exposing (Scene)
 import Lib.Counter as Counter exposing (Counter)
@@ -101,6 +102,9 @@ update msg model =
                     { model | scene = Scene.Dungeon newDungeon }
             in
             ( newModel, Cmd.none )
+
+        ( Msg.UserSelectedRevive, _ ) ->
+            ( { model | scene = Scene.Home Home.init }, Cmd.none )
 
         _ ->
             ( model, Cmd.none )

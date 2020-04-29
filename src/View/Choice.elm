@@ -1,5 +1,6 @@
 module View.Choice exposing
     ( action
+    , choices
     , event
     , explore
     , inn
@@ -8,6 +9,7 @@ module View.Choice exposing
     )
 
 import Domain.Action as Action exposing (Action)
+import Domain.Computed as Computed exposing (Computed)
 import Domain.Effect as Effect exposing (Effect)
 import Domain.Event as Event exposing (Event)
 import Domain.Global as Global exposing (Global)
@@ -91,3 +93,50 @@ action a =
     , msg = Msg.Decorator a.requirements a.effects Msg.NoOp
     , quantity = Nothing
     }
+
+
+revive : Ui.Choice
+revive =
+    let
+        reqs =
+            [ Requirement.Global <| Requirement.Global.MaxHitPointCost 1
+            ]
+
+        effs =
+            [ Effect.Global <| Effect.Global.ChangeHitPoints 1
+            ]
+    in
+    { label = "Revive"
+    , requirements = reqs
+    , effects = effs
+    , msg = Msg.Decorator reqs effs Msg.UserSelectedRevive
+    , quantity = Nothing
+    }
+
+
+reincarnate : Ui.Choice
+reincarnate =
+    let
+        reqs =
+            []
+
+        effs =
+            []
+    in
+    { label = "Reincarnate"
+    , requirements = reqs
+    , effects = effs
+    , msg = Msg.Decorator reqs effs Msg.UserSelectedReincarnate
+    , quantity = Nothing
+    }
+
+
+choices : Computed -> List Ui.Choice -> List Ui.Choice
+choices computed ccs =
+    if computed.isDead then
+        [ revive
+        , reincarnate
+        ]
+
+    else
+        ccs

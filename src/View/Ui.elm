@@ -15,6 +15,7 @@ module View.Ui exposing
     )
 
 import Domain.Effect as Effect exposing (Effect)
+import Domain.Global as Global exposing (Global)
 import Domain.Requirement as Requirement exposing (Requirement)
 import Domain.Scene as Scene exposing (Scene)
 import Element exposing (Element)
@@ -330,7 +331,7 @@ type alias Screen =
     { header : Header
     , context : Context
     , stage : Stage
-    , choices : Maybe (List Choice)
+    , choices : List Choice
     }
 
 
@@ -365,20 +366,15 @@ screen o =
             ]
 
 
-screenChoices : Maybe (List Choice) -> Element Msg
+screenChoices : List Choice -> Element Msg
 screenChoices choices =
-    case choices of
-        Just cs ->
-            Element.column
-                [ Element.padding 10
-                , Element.Background.color <| Element.rgb255 250 225 200
-                , Element.centerX
-                , Element.width <| Element.px 300
-                , Element.Border.width 1
-                , Element.alignTop
-                , Element.spacing 10
-                ]
-                (List.map choiceElement cs)
-
-        Nothing ->
-            Element.none
+    Element.column
+        [ Element.padding 10
+        , Element.Background.color <| Element.rgb255 250 225 200
+        , Element.centerX
+        , Element.width <| Element.px 300
+        , Element.Border.width 1
+        , Element.alignTop
+        , Element.spacing 10
+        ]
+        (List.map choiceElement choices)
