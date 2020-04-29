@@ -44,6 +44,9 @@ view model =
         Scene.Shop stock ambient ->
             viewShop stock ambient model
 
+        Scene.Garden ambient ->
+            viewGarden ambient model
+
 
 viewHome : Home -> Model -> Ui Msg
 viewHome home model =
@@ -75,6 +78,7 @@ viewHome home model =
                 [ View.Choice.explore
                 , View.Choice.shop { name = "Main Shop", stock = [] }
                 , View.Choice.inn model.global
+                , View.Choice.garden
                 ]
         }
 
@@ -258,6 +262,23 @@ viewShop shop ambient model =
                     Ui.image "Image"
                 , description =
                     Ui.description "Description"
+                }
+        , choices =
+            View.Choice.choices (Computed.fromGlobal model.global) []
+        }
+
+
+viewGarden : Scene -> Model -> Ui Msg
+viewGarden ambient model =
+    Ui.screen
+        { header = Ui.header model.scene
+        , context =
+            Ui.context []
+        , stage =
+            Ui.stage
+                { label = Ui.label "Garden"
+                , image = Ui.image "Image"
+                , description = Ui.description "Garden Description"
                 }
         , choices =
             View.Choice.choices (Computed.fromGlobal model.global) []

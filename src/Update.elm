@@ -109,5 +109,8 @@ update msg model =
         ( Msg.UserSelectedReincarnate, _ ) ->
             ( Model.init, Cmd.none )
 
+        ( Msg.UserSelectedGarden, Scene.Home _ ) ->
+            ( { model | scene = Scene.Garden model.scene }, Cmd.none )
+
         _ ->
             ( model, Cmd.none )

@@ -24,3 +24,4 @@ type Msg
     | UserSelectedEvent Event
     | UserSelectedRevive
     | UserSelectedReincarnate
+    | UserSelectedGarden

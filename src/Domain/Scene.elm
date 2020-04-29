@@ -19,6 +19,7 @@ type Scene
     | Battle Battle Scene
     | BossBattle Battle
     | Shop Shop Scene
+    | Garden Scene
 
 
 toString : Scene -> String
@@ -42,6 +43,9 @@ toString scene =
         Shop _ _ ->
             "Shop"
 
+        Garden _ ->
+            "Garden"
+
 
 ambient : Scene -> Maybe Scene
 ambient scene =
@@ -53,6 +57,9 @@ ambient scene =
             Just ambientScene
 
         Shop _ ambientScene ->
+            Just ambientScene
+
+        Garden ambientScene ->
             Just ambientScene
 
         _ ->

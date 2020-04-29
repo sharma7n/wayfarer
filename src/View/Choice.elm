@@ -3,6 +3,7 @@ module View.Choice exposing
     , choices
     , event
     , explore
+    , garden
     , inn
     , map
     , shop
@@ -140,3 +141,21 @@ choices computed ccs =
 
     else
         ccs
+
+
+garden : Ui.Choice
+garden =
+    let
+        reqs =
+            [ Requirement.Home <| Requirement.Home.TimeCost 1
+            ]
+
+        effs =
+            []
+    in
+    { label = "Garden"
+    , requirements = reqs
+    , effects = effs
+    , msg = Msg.Decorator reqs effs Msg.UserSelectedGarden
+    , quantity = Nothing
+    }
