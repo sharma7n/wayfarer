@@ -3,9 +3,11 @@ module Main exposing (..)
 import Browser
 import Html
 import Html.Events
+import Random
 
 type alias Model =
-    { day : Int
+    { rollResult : Maybe Int
+    , day : Int
     , maxTime : Int
     , time : Int
     , experience : Int
@@ -20,14 +22,18 @@ type alias Model =
     }
 
 type Msg
-    = Inn
+    = RollDie
+    | GotRollResult Int
+    | Inn
     | Explore
     | SpringTrap
     | Fight Monster
     | GainGold
     | GainPotion
+    | BuyPotion
     | UsePotion
     | GainCopperKnife
+    | BuyCopperKnife
     | EquipCopperKnife
     | UnEquipCopperKnife
     | SavePoint
@@ -82,7 +88,8 @@ init : flags -> ( Model, Cmd msg )
 init _ =
     let
         initModel =
-            { day = 1
+            { rollResult = Nothing
+            , day = 1
             , maxTime = 3
             , time = 3
             , experience = 0
@@ -104,7 +111,11 @@ view : Model -> Html.Html Msg
 view model =
     Html.ul
         []
-        [ Html.li [] [ Html.text <| "Day: " ++ String.fromInt model.day ]
+        [ Html.li [] 
+            [ Html.button [ Html.Events.onClick RollDie ] [ Html.text <| "Roll Die" ]
+            , Html.text <| "Result: " ++ Maybe.withDefault "Nothing" (Maybe.map String.fromInt model.rollResult)
+            ]
+        , Html.li [] [ Html.text <| "Day: " ++ String.fromInt model.day ]
         , Html.li [] [ Html.text <| "Time: " ++ String.fromInt model.time ++ " / " ++ String.fromInt model.maxTime ]
         , Html.li [] [ Html.text <| "EXP: " ++ String.fromInt model.experience ]
         , Html.li [] [ Html.text <| "HP: " ++ String.fromInt model.hitPoints ++ " / " ++ String.fromInt model.maxHitPoints ]
@@ -137,7 +148,9 @@ view model =
         , Html.li [] [ Html.button [ Html.Events.onClick (Fight bossSquirrel) ] [ Html.text <| "Fight Boss Squirrel" ] ]
         , Html.li [] [ Html.button [ Html.Events.onClick GainGold ] [ Html.text <| "Gain Gold" ] ]
         , Html.li [] [ Html.button [ Html.Events.onClick GainPotion ] [ Html.text <| "Gain Potion" ] ]
+        , Html.li [] [ Html.button [ Html.Events.onClick BuyPotion ] [ Html.text <| "Buy Potion" ] ]
         , Html.li [] [ Html.button [ Html.Events.onClick GainCopperKnife ] [ Html.text <| "Gain Copper Knife" ] ]
+        , Html.li [] [ Html.button [ Html.Events.onClick BuyCopperKnife ] [ Html.text <| "Buy Copper Knife" ] ]
         , Html.li [] [ Html.button [ Html.Events.onClick SavePoint ] [ Html.text <| "Save Point" ] ]
         ]
 
@@ -155,6 +168,12 @@ equippedWeaponActions m =
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model = 
     case msg of
+        RollDie ->
+            updateRollDie model
+        
+        GotRollResult result ->
+            updateGotRollResult result model
+        
         Inn ->
             updateInn model
         
@@ -173,8 +192,14 @@ update msg model =
         GainPotion ->
             updateGainPotion model
         
+        BuyPotion ->
+            updateBuyPotion model
+        
         GainCopperKnife ->
             updateGainCopperKnife model
+        
+        BuyCopperKnife ->
+            updateBuyCopperKnife model
         
         EquipCopperKnife ->
             updateEquipCopperKnife model
@@ -187,6 +212,24 @@ update msg model =
         
         SavePoint ->
             updateSavePoint model
+
+updateRollDie : Model -> ( Model, Cmd Msg )
+updateRollDie model =
+    let
+        getRollResultCmd =
+            Random.generate GotRollResult (Random.int 1 6)  
+    in
+    ( model, getRollResultCmd )
+
+updateGotRollResult : Int -> Model -> ( Model, Cmd Msg )
+updateGotRollResult result model =
+    let
+        newModel =
+            { model
+                | rollResult = Just result
+            }
+    in
+    ( newModel, Cmd.none )
 
 updateInn : Model -> ( Model, Cmd Msg )
 updateInn model =
@@ -254,12 +297,38 @@ updateGainPotion model =
     in
     ( newModel, Cmd.none )
 
+updateBuyPotion : Model -> ( Model, Cmd Msg )
+updateBuyPotion model =
+    let
+        paid = if model.gold >= 2 then 2 else 0
+        newItems = if model.gold >= 2 then [ "Potion" ] else []
+        newModel =
+            { model
+                | inventory = List.append newItems model.inventory
+                , gold = model.gold - paid
+            }
+    in
+    ( newModel, Cmd.none )
+
 updateGainCopperKnife : Model -> ( Model, Cmd Msg )
 updateGainCopperKnife model =
     let
         newModel =
             { model
                 | weapons = "Copper Knife" :: model.weapons
+            }
+    in
+    ( newModel, Cmd.none )
+
+updateBuyCopperKnife : Model -> ( Model, Cmd Msg )
+updateBuyCopperKnife model =
+    let
+        paid = if model.gold >= 10 then 10 else 0
+        newWeapons = if model.gold >= 10 then [ "Copper Knife" ] else []
+        newModel =
+            { model
+                | weapons = List.append newWeapons model.weapons
+                , gold = model.gold - paid
             }
     in
     ( newModel, Cmd.none )
