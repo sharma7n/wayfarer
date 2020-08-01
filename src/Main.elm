@@ -1,23 +1,38 @@
 module Main exposing (..)
 
 import Browser
-import Model exposing (Model)
-import Msg exposing (Msg)
-import Subscriptions
-import Update
-import View
+import Html
 
+type alias Model =
+    {
+    }
 
-main : Program () Model Msg
+main : Program () Model msg
 main =
     Browser.element
         { init = init
-        , view = View.view
-        , update = Update.update
-        , subscriptions = Subscriptions.subscriptions
+        , view = view
+        , update = update
+        , subscriptions = subscriptions
         }
 
+-- INIT
 
 init : flags -> ( Model, Cmd msg )
-init _ =
-    ( Model.init, Cmd.none )
+init _ = ( {}, Cmd.none )
+
+-- VIEW
+
+view : Model -> Html.Html msg
+view _ = Html.text "Hello, world!"
+
+-- UPDATE
+
+update : msg -> Model -> ( Model, Cmd msg )
+update _ model = ( model, Cmd.none )
+
+-- SUBSCRIPTIONS
+
+subscriptions : Model -> Sub msg
+subscriptions _ =
+    Sub.none
