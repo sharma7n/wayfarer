@@ -15,17 +15,57 @@ type alias Model =
     , defense : Int
     , gold : Int
     , inventory : List String
+    , weapons : List String
+    , equippedWeapon : Maybe String
     }
 
 type Msg
     = Inn
     | Explore
     | SpringTrap
-    | FightSquirrel
+    | Fight Monster
     | GainGold
     | GainPotion
     | UsePotion
+    | GainCopperKnife
+    | EquipCopperKnife
+    | UnEquipCopperKnife
     | SavePoint
+
+type alias Monster =
+    { name : String
+    , attack : Int
+    , defense : Int
+    , expYield : Int
+    , goldYield : Int
+    }
+
+squirrel : Monster
+squirrel =
+    { name = "Squirrel"
+    , attack = 1
+    , defense = 1
+    , expYield = 1
+    , goldYield = 1
+    }
+
+bossSquirrel : Monster
+bossSquirrel =
+    { name = "Boss Squirrel"
+    , attack = 8
+    , defense = 2
+    , expYield = 10
+    , goldYield = 10
+    }
+
+owl : Monster
+owl =
+    { name = "Owl"
+    , attack = 1
+    , defense = 2
+    , expYield = 1
+    , goldYield = 2
+    }
 
 main : Program () Model Msg
 main =
@@ -52,6 +92,8 @@ init _ =
             , defense = 0
             , gold = 0
             , inventory = []
+            , weapons = []
+            , equippedWeapon = Nothing
             }
     in   
     ( initModel, Cmd.none )
@@ -73,16 +115,40 @@ view model =
             [ Html.li [] [ Html.text <| "Inventory: " ]
             , Html.ul 
                 []
-                ( List.map (\item -> Html.button [ Html.Events.onClick UsePotion ] [ Html.text item ]) model.inventory)
+                ( List.map (\item -> Html.button [ Html.Events.onClick UsePotion ] [ Html.text item ]) model.inventory )
             ]
-        , Html.button [ Html.Events.onClick Inn ] [ Html.text <| "Inn" ]
-        , Html.button [ Html.Events.onClick Explore ] [ Html.text <| "Explore" ]
-        , Html.button [ Html.Events.onClick SpringTrap ] [ Html.text <| "Spring Trap" ]
-        , Html.button [ Html.Events.onClick FightSquirrel ] [ Html.text <| "Fight Squirrel" ]
-        , Html.button [ Html.Events.onClick GainGold ] [ Html.text <| "Gain Gold" ]
-        , Html.button [ Html.Events.onClick GainPotion ] [ Html.text <| "Gain Potion" ]
-        , Html.button [ Html.Events.onClick SavePoint ] [ Html.text <| "Save Point" ]
+        , Html.li [] 
+            [ Html.li [] [ Html.text <| "Weapons: " ]
+            , Html.ul 
+                []
+                ( List.map (\weapon -> Html.button [ Html.Events.onClick EquipCopperKnife ] [ Html.text weapon ]) model.weapons )
+            ]
+        , Html.li [] 
+            [ Html.li [] [ Html.text <| "Equipped Weapon: " ]
+            , Html.ul 
+                []
+                [ Html.button (equippedWeaponActions model.equippedWeapon) [ Html.text <| Maybe.withDefault "Nothing" model.equippedWeapon ] ]
+            ]
+        , Html.li [] [ Html.button [ Html.Events.onClick Inn ] [ Html.text <| "Inn" ] ]
+        , Html.li [] [ Html.button [ Html.Events.onClick Explore ] [ Html.text <| "Explore" ] ]
+        , Html.li [] [ Html.button [ Html.Events.onClick SpringTrap ] [ Html.text <| "Spring Trap" ] ]
+        , Html.li [] [ Html.button [ Html.Events.onClick (Fight squirrel) ] [ Html.text <| "Fight Squirrel" ] ]
+        , Html.li [] [ Html.button [ Html.Events.onClick (Fight owl) ] [ Html.text <| "Fight Owl" ] ]
+        , Html.li [] [ Html.button [ Html.Events.onClick (Fight bossSquirrel) ] [ Html.text <| "Fight Boss Squirrel" ] ]
+        , Html.li [] [ Html.button [ Html.Events.onClick GainGold ] [ Html.text <| "Gain Gold" ] ]
+        , Html.li [] [ Html.button [ Html.Events.onClick GainPotion ] [ Html.text <| "Gain Potion" ] ]
+        , Html.li [] [ Html.button [ Html.Events.onClick GainCopperKnife ] [ Html.text <| "Gain Copper Knife" ] ]
+        , Html.li [] [ Html.button [ Html.Events.onClick SavePoint ] [ Html.text <| "Save Point" ] ]
         ]
+
+equippedWeaponActions : Maybe String -> List (Html.Attribute Msg)
+equippedWeaponActions m =
+    case m of
+        Nothing -> 
+            []
+        
+        Just _ -> 
+            [ Html.Events.onClick UnEquipCopperKnife ]
 
 -- UPDATE
 
@@ -98,14 +164,23 @@ update msg model =
         SpringTrap ->
             updateSpringTrap model
         
-        FightSquirrel ->
-            updateFightSquirrel model
+        Fight monster ->
+            updateFight monster model
         
         GainGold ->
             updateGainGold model
         
         GainPotion ->
             updateGainPotion model
+        
+        GainCopperKnife ->
+            updateGainCopperKnife model
+        
+        EquipCopperKnife ->
+            updateEquipCopperKnife model
+        
+        UnEquipCopperKnife ->
+            updateUnEquipCopperKnife model
         
         UsePotion ->
             updateUsePotion model
@@ -144,12 +219,12 @@ updateSpringTrap model =
     in
     ( newModel, Cmd.none )
 
-updateFightSquirrel : Model -> ( Model, Cmd Msg )
-updateFightSquirrel model =
+updateFight : Monster -> Model -> ( Model, Cmd Msg )
+updateFight monster model =
     let
-        damage = max (1 - model.defense) 0
-        expGain = if model.attack >= 1 then 1 else 0
-        goldGain = if model.attack >= 1 then 1 else 0
+        damage = max (monster.attack - model.defense) 0
+        expGain = if model.attack >= monster.defense then monster.expYield else 0
+        goldGain = if model.attack >= monster.defense then monster.goldYield else 0
         newModel =
             { model
                 | hitPoints = max (model.hitPoints - damage) 0
@@ -174,7 +249,17 @@ updateGainPotion model =
     let
         newModel =
             { model
-                | inventory = "potion" :: model.inventory
+                | inventory = "Potion" :: model.inventory
+            }
+    in
+    ( newModel, Cmd.none )
+
+updateGainCopperKnife : Model -> ( Model, Cmd Msg )
+updateGainCopperKnife model =
+    let
+        newModel =
+            { model
+                | weapons = "Copper Knife" :: model.weapons
             }
     in
     ( newModel, Cmd.none )
@@ -186,6 +271,30 @@ updateUsePotion model =
             { model
                 | inventory = Maybe.withDefault [] (List.tail model.inventory)
                 , hitPoints = min (model.hitPoints + 1) model.maxHitPoints
+            }
+    in
+    ( newModel, Cmd.none )
+
+updateEquipCopperKnife : Model -> ( Model, Cmd Msg )
+updateEquipCopperKnife model =
+    let
+        newModel =
+            { model
+                | weapons = Maybe.withDefault [] (List.tail model.weapons)
+                , equippedWeapon = Just "Copper Knife"
+                , attack = model.attack + 1
+            }
+    in
+    ( newModel, Cmd.none )
+
+updateUnEquipCopperKnife : Model -> ( Model, Cmd Msg )
+updateUnEquipCopperKnife model =
+    let
+        newModel =
+            { model
+                | weapons = "Copper Knife" :: model.weapons
+                , equippedWeapon = Nothing
+                , attack = model.attack - 1
             }
     in
     ( newModel, Cmd.none )
