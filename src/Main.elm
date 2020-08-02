@@ -18,6 +18,7 @@ type alias Model =
     , magicPoints : Int
     , attack : Int
     , defense : Int
+    , agility : Int
     , gold : Int
     , inventory : List String
     , weapons : List String
@@ -28,6 +29,7 @@ type alias Model =
     , increaseMaxHitPointFlag : Bool
     , increaseAttackFlag : Bool
     , increaseDefenseFlag : Bool
+    , encounteredMonster : Maybe Monster
     }
 
 type Msg
@@ -36,12 +38,11 @@ type Msg
     | Inn
     | Explore
     | SpringTrap
-    | Fight Monster
-    | GainGold
-    | GainPotion
+    | Fight
+    | BossFight Monster
+    | Flee
     | BuyPotion
     | UsePotion
-    | GainCopperKnife
     | BuyCopperKnife
     | EquipCopperKnife
     | UnEquipCopperKnife
@@ -51,15 +52,19 @@ type Msg
     | IncreaseDefense
     | LearnForestWalk
     | UseForestWalk
-    | GainLeatherArmor
     | BuyLeatherArmor
     | EquipLeatherArmor
     | UnEquipLeatherArmor
+    | GenerateTreasure (Random.Generator Treasure)
+    | GetTreasure Treasure
+    | GenerateMonster (Random.Generator Monster)
+    | GetMonster Monster
 
 type alias Monster =
     { name : String
     , attack : Int
     , defense : Int
+    , agility : Int
     , expYield : Int
     , goldYield : Int
     }
@@ -69,6 +74,7 @@ squirrel =
     { name = "Squirrel"
     , attack = 1
     , defense = 1
+    , agility = 2
     , expYield = 1
     , goldYield = 1
     }
@@ -78,6 +84,7 @@ bossSquirrel =
     { name = "Boss Squirrel"
     , attack = 8
     , defense = 2
+    , agility = 1
     , expYield = 10
     , goldYield = 10
     }
@@ -87,6 +94,7 @@ owl =
     { name = "Owl"
     , attack = 1
     , defense = 2
+    , agility = 1
     , expYield = 1
     , goldYield = 2
     }
@@ -96,9 +104,43 @@ wolf =
     { name = "Wolf"
     , attack = 3
     , defense = 3
+    , agility = 1
     , expYield = 3
     , goldYield = 3
     }
+
+randomEncounterTable : Random.Generator Monster
+randomEncounterTable =
+    Random.weighted
+        ( 6, squirrel )
+        [ ( 3, owl )
+        , ( 1, wolf )
+        ]
+
+type Treasure
+    = TrapTreasure Int
+    | EmptyTreasure
+    | GoldTreasure Int
+    | ItemTreasure String
+    | WeaponTreasure String
+    | ArmorTreasure String
+
+minorTreasure =
+    Random.weighted
+        ( 3, EmptyTreasure )
+        [ (1, TrapTreasure 1 )
+        , (1, GoldTreasure 1 )
+        , (1, ItemTreasure "Potion" )
+        ]
+
+majorTreasure =
+    Random.weighted
+        ( 1, TrapTreasure 1 )
+        [ ( 3, GoldTreasure 1 )
+        , ( 3, ItemTreasure "Potion" )
+        , ( 1, WeaponTreasure "Copper Knife" )
+        , ( 1, ArmorTreasure "Leather Armor" )
+        ]
 
 main : Program () Model Msg
 main =
@@ -126,6 +168,7 @@ init _ =
             , magicPoints = 1
             , attack = 1
             , defense = 0
+            , agility = 1
             , gold = 0
             , inventory = []
             , weapons = []
@@ -136,6 +179,7 @@ init _ =
             , increaseMaxHitPointFlag = False
             , increaseAttackFlag = False
             , increaseDefenseFlag = False
+            , encounteredMonster = Nothing
             }
     in   
     ( initModel, Cmd.none )
@@ -157,6 +201,7 @@ view model =
         , Html.li [] [ Html.text <| "MP: " ++ String.fromInt model.magicPoints ++ " / " ++ String.fromInt model.maxMagicPoints ]
         , Html.li [] [ Html.text <| "ATK: " ++ String.fromInt model.attack ]
         , Html.li [] [ Html.text <| "DEF: " ++ String.fromInt model.defense ]
+        , Html.li [] [ Html.text <| "AGI: " ++ String.fromInt model.agility ]
         , Html.li [] [ Html.text <| "Gold: " ++ String.fromInt model.gold ]
         , Html.li [] 
             [ Html.li [] [ Html.text <| "Inventory: " ]
@@ -194,19 +239,23 @@ view model =
                 []
                 ( List.map (\skill -> Html.button [ Html.Events.onClick UseForestWalk ] [ Html.text skill ]) (Set.toList model.skills) )
             ]
+        , Html.li [] 
+            [ Html.li [] [ Html.text <| "Encountered Monster: " ]
+            , Html.ul 
+                []
+                [ Html.text <| Maybe.withDefault "Nothing" (Maybe.map .name model.encounteredMonster) ]
+            ]
         , Html.li [] [ Html.button [ Html.Events.onClick Inn ] [ Html.text <| "Inn" ] ]
         , Html.li [] [ Html.button [ Html.Events.onClick Explore ] [ Html.text <| "Explore" ] ]
         , Html.li [] [ Html.button [ Html.Events.onClick SpringTrap ] [ Html.text <| "Spring Trap" ] ]
-        , Html.li [] [ Html.button [ Html.Events.onClick (Fight squirrel) ] [ Html.text <| "Fight Squirrel" ] ]
-        , Html.li [] [ Html.button [ Html.Events.onClick (Fight owl) ] [ Html.text <| "Fight Owl" ] ]
-        , Html.li [] [ Html.button [ Html.Events.onClick (Fight wolf) ] [ Html.text <| "Fight Wolf" ] ]
-        , Html.li [] [ Html.button [ Html.Events.onClick (Fight bossSquirrel) ] [ Html.text <| "Fight Boss Squirrel" ] ]
-        , Html.li [] [ Html.button [ Html.Events.onClick GainGold ] [ Html.text <| "Gain Gold" ] ]
-        , Html.li [] [ Html.button [ Html.Events.onClick GainPotion ] [ Html.text <| "Gain Potion" ] ]
+        , Html.li [] [ Html.button [ Html.Events.onClick (GenerateMonster randomEncounterTable) ] [ Html.text <| "Encounter Monster" ] ]
+        , Html.li [] [ Html.button [ Html.Events.onClick Fight ] [ Html.text <| "Fight" ] ]
+        , Html.li [] [ Html.button [ Html.Events.onClick Flee ] [ Html.text <| "Flee" ] ]
+        , Html.li [] [ Html.button [ Html.Events.onClick (BossFight bossSquirrel) ] [ Html.text <| "Fight Boss Squirrel" ] ]
         , Html.li [] [ Html.button [ Html.Events.onClick BuyPotion ] [ Html.text <| "Buy Potion" ] ]
-        , Html.li [] [ Html.button [ Html.Events.onClick GainCopperKnife ] [ Html.text <| "Gain Copper Knife" ] ]
         , Html.li [] [ Html.button [ Html.Events.onClick BuyCopperKnife ] [ Html.text <| "Buy Copper Knife" ] ]
-        , Html.li [] [ Html.button [ Html.Events.onClick GainLeatherArmor ] [ Html.text <| "Gain Leather Armor" ] ]
+        , Html.li [] [ Html.button [ Html.Events.onClick (GenerateTreasure minorTreasure) ] [ Html.text <| "Cut Grass" ] ]
+        , Html.li [] [ Html.button [ Html.Events.onClick (GenerateTreasure majorTreasure) ] [ Html.text <| "Open Treasure Chest" ] ]
         , Html.li [] [ Html.button [ Html.Events.onClick BuyLeatherArmor ] [ Html.text <| "Buy Leather Armor" ] ]
         , Html.li [] [ Html.button [ Html.Events.onClick SavePoint ] [ Html.text <| "Save Point" ] ]
         , Html.li [] [ Html.button [ Html.Events.onClick IncreaseMaxHitPoints ] [ Html.text <| "Increase Max HP" ] ]
@@ -253,20 +302,17 @@ update msg model =
         SpringTrap ->
             updateSpringTrap model
         
-        Fight monster ->
-            updateFight monster model
+        Fight ->
+            updateFight model
         
-        GainGold ->
-            updateGainGold model
+        BossFight monster ->
+            updateBossFight monster model
         
-        GainPotion ->
-            updateGainPotion model
+        Flee ->
+            updateFlee model
         
         BuyPotion ->
             updateBuyPotion model
-        
-        GainCopperKnife ->
-            updateGainCopperKnife model
         
         BuyCopperKnife ->
             updateBuyCopperKnife model
@@ -298,9 +344,6 @@ update msg model =
         UseForestWalk ->
             updateUseForestWalk model
         
-        GainLeatherArmor ->
-            updateGainLeatherArmor model
-        
         BuyLeatherArmor ->
             updateBuyLeatherArmor model
         
@@ -309,6 +352,18 @@ update msg model =
         
         UnEquipLeatherArmor ->
             updateUnEquipLeatherArmor model
+        
+        GenerateTreasure distribution ->
+            updateGenerateTreasure distribution model
+        
+        GetTreasure treasure ->
+            updateGetTreasure treasure model
+        
+        GenerateMonster distribution ->
+            updateGenerateMonster distribution model
+        
+        GetMonster monster ->
+            updateGetMonster monster model
 
 updateRollDie : Model -> ( Model, Cmd Msg )
 updateRollDie model =
@@ -359,8 +414,8 @@ updateSpringTrap model =
     in
     ( newModel, Cmd.none )
 
-updateFight : Monster -> Model -> ( Model, Cmd Msg )
-updateFight monster model =
+updateBossFight : Monster -> Model -> ( Model, Cmd Msg )
+updateBossFight monster model =
     let
         damage = max (monster.attack - model.defense) 0
         expGain = if model.attack >= monster.defense then monster.expYield else 0
@@ -371,6 +426,51 @@ updateFight monster model =
                 , experience = model.experience + expGain
                 , gold = model.gold + goldGain
             }
+    in
+    ( newModel, Cmd.none )
+
+updateFight : Model -> ( Model, Cmd Msg )
+updateFight model =
+    let
+        newModel =
+            case model.encounteredMonster of
+                Just monster ->
+                    let
+                        damage = max (monster.attack - model.defense) 0
+                        expGain = if model.attack >= monster.defense then monster.expYield else 0
+                        goldGain = if model.attack >= monster.defense then monster.goldYield else 0
+                    in
+                    { model
+                        | hitPoints = max (model.hitPoints - damage) 0
+                        , experience = model.experience + expGain
+                        , gold = model.gold + goldGain
+                        , encounteredMonster = Nothing
+                    }
+                
+                Nothing ->
+                    model
+
+    in
+    ( newModel, Cmd.none )
+
+updateFlee : Model -> ( Model, Cmd Msg )
+updateFlee model =
+    let
+        newModel =
+            case model.encounteredMonster of
+                Just monster ->
+                    let
+                        canFlee = model.agility >= monster.agility
+                        damage = max (monster.attack - model.defense) 0
+                        fleeDamage = if canFlee then 0 else damage
+                    in
+                    { model
+                        | hitPoints = max (model.hitPoints - fleeDamage) 0
+                        , encounteredMonster = Nothing
+                    }
+                
+                Nothing ->
+                    model
     in
     ( newModel, Cmd.none )
 
@@ -595,6 +695,57 @@ updateUnEquipLeatherArmor model =
                 | armors = "Leather Armor" :: model.armors
                 , equippedArmor = Nothing
                 , defense = model.defense - 1
+            }
+    in
+    ( newModel, Cmd.none )
+
+updateGenerateTreasure : Random.Generator Treasure -> Model -> ( Model, Cmd Msg )
+updateGenerateTreasure distribution model =
+    let
+        newCmd =
+            Random.generate GetTreasure distribution
+    in
+    ( model, newCmd )
+
+updateGetTreasure : Treasure -> Model -> ( Model, Cmd Msg )
+updateGetTreasure treasure model =
+    let
+        newModel =
+            case treasure of
+                TrapTreasure damage ->
+                    { model | hitPoints = max (model.hitPoints - damage) 0 }
+                
+                EmptyTreasure ->
+                    model
+                
+                GoldTreasure amount ->
+                    { model | gold = model.gold + amount }
+                
+                ItemTreasure item ->
+                    { model | inventory = item :: model.inventory }
+                
+                WeaponTreasure weapon ->
+                    { model | weapons = weapon :: model.weapons }
+                
+                ArmorTreasure armor ->
+                    { model | armors = armor :: model.armors }
+    in
+    ( newModel, Cmd.none )
+
+updateGenerateMonster : Random.Generator Monster -> Model -> ( Model, Cmd Msg )
+updateGenerateMonster distribution model =
+    let
+        newCmd =
+            Random.generate GetMonster distribution
+    in
+    ( model, newCmd )
+
+updateGetMonster : Monster -> Model -> ( Model, Cmd Msg )
+updateGetMonster monster model =
+    let
+        newModel =
+            { model
+                | encounteredMonster = Just monster
             }
     in
     ( newModel, Cmd.none )
