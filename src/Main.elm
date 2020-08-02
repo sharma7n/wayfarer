@@ -14,17 +14,20 @@ type alias Model =
     , experience : Int
     , maxHitPoints : Int
     , hitPoints : Int
+    , maxMagicPoints : Int
+    , magicPoints : Int
     , attack : Int
     , defense : Int
     , gold : Int
     , inventory : List String
     , weapons : List String
     , equippedWeapon : Maybe String
+    , armors : List String
+    , equippedArmor : Maybe String
     , skills : Set.Set String
     , increaseMaxHitPointFlag : Bool
     , increaseAttackFlag : Bool
     , increaseDefenseFlag : Bool
-    , enabledSkill : Maybe String
     }
 
 type Msg
@@ -47,8 +50,11 @@ type Msg
     | IncreaseAttack
     | IncreaseDefense
     | LearnForestWalk
-    | EnableForestWalk
-    | DisableForestWalk
+    | UseForestWalk
+    | GainLeatherArmor
+    | BuyLeatherArmor
+    | EquipLeatherArmor
+    | UnEquipLeatherArmor
 
 type alias Monster =
     { name : String
@@ -116,17 +122,20 @@ init _ =
             , experience = 0
             , maxHitPoints = 8
             , hitPoints = 8
+            , maxMagicPoints = 1
+            , magicPoints = 1
             , attack = 1
             , defense = 0
             , gold = 0
             , inventory = []
             , weapons = []
             , equippedWeapon = Nothing
+            , armors = []
+            , equippedArmor = Nothing
             , skills = Set.empty
             , increaseMaxHitPointFlag = False
             , increaseAttackFlag = False
             , increaseDefenseFlag = False
-            , enabledSkill = Nothing
             }
     in   
     ( initModel, Cmd.none )
@@ -145,6 +154,7 @@ view model =
         , Html.li [] [ Html.text <| "Time: " ++ String.fromInt model.time ++ " / " ++ String.fromInt model.maxTime ]
         , Html.li [] [ Html.text <| "EXP: " ++ String.fromInt model.experience ]
         , Html.li [] [ Html.text <| "HP: " ++ String.fromInt model.hitPoints ++ " / " ++ String.fromInt model.maxHitPoints ]
+        , Html.li [] [ Html.text <| "MP: " ++ String.fromInt model.magicPoints ++ " / " ++ String.fromInt model.maxMagicPoints ]
         , Html.li [] [ Html.text <| "ATK: " ++ String.fromInt model.attack ]
         , Html.li [] [ Html.text <| "DEF: " ++ String.fromInt model.defense ]
         , Html.li [] [ Html.text <| "Gold: " ++ String.fromInt model.gold ]
@@ -167,16 +177,22 @@ view model =
                 [ Html.button (equippedWeaponActions model.equippedWeapon) [ Html.text <| Maybe.withDefault "Nothing" model.equippedWeapon ] ]
             ]
         , Html.li [] 
+            [ Html.li [] [ Html.text <| "Armor: " ]
+            , Html.ul 
+                []
+                ( List.map (\armor -> Html.button [ Html.Events.onClick EquipLeatherArmor ] [ Html.text armor ]) model.armors )
+            ]
+        , Html.li [] 
+            [ Html.li [] [ Html.text <| "Equipped Armor: " ]
+            , Html.ul 
+                []
+                [ Html.button (equippedArmorActions model.equippedArmor) [ Html.text <| Maybe.withDefault "Nothing" model.equippedArmor ] ]
+            ]
+        , Html.li [] 
             [ Html.li [] [ Html.text <| "Skills: " ]
             , Html.ul 
                 []
-                ( List.map (\skill -> Html.button [ Html.Events.onClick EnableForestWalk ] [ Html.text skill ]) (Set.toList model.skills) )
-            ]
-        , Html.li [] 
-            [ Html.li [] [ Html.text <| "Enabled Skill: " ]
-            , Html.ul 
-                []
-                [ Html.button (enabledSkillActions model.enabledSkill) [ Html.text <| Maybe.withDefault "Nothing" model.enabledSkill ] ]
+                ( List.map (\skill -> Html.button [ Html.Events.onClick UseForestWalk ] [ Html.text skill ]) (Set.toList model.skills) )
             ]
         , Html.li [] [ Html.button [ Html.Events.onClick Inn ] [ Html.text <| "Inn" ] ]
         , Html.li [] [ Html.button [ Html.Events.onClick Explore ] [ Html.text <| "Explore" ] ]
@@ -190,6 +206,8 @@ view model =
         , Html.li [] [ Html.button [ Html.Events.onClick BuyPotion ] [ Html.text <| "Buy Potion" ] ]
         , Html.li [] [ Html.button [ Html.Events.onClick GainCopperKnife ] [ Html.text <| "Gain Copper Knife" ] ]
         , Html.li [] [ Html.button [ Html.Events.onClick BuyCopperKnife ] [ Html.text <| "Buy Copper Knife" ] ]
+        , Html.li [] [ Html.button [ Html.Events.onClick GainLeatherArmor ] [ Html.text <| "Gain Leather Armor" ] ]
+        , Html.li [] [ Html.button [ Html.Events.onClick BuyLeatherArmor ] [ Html.text <| "Buy Leather Armor" ] ]
         , Html.li [] [ Html.button [ Html.Events.onClick SavePoint ] [ Html.text <| "Save Point" ] ]
         , Html.li [] [ Html.button [ Html.Events.onClick IncreaseMaxHitPoints ] [ Html.text <| "Increase Max HP" ] ]
         , Html.li [] [ Html.button [ Html.Events.onClick IncreaseAttack ] [ Html.text <| "Increase ATK" ] ]
@@ -206,14 +224,14 @@ equippedWeaponActions m =
         Just _ -> 
             [ Html.Events.onClick UnEquipCopperKnife ]
 
-enabledSkillActions : Maybe String -> List (Html.Attribute Msg)
-enabledSkillActions m =
+equippedArmorActions : Maybe String -> List (Html.Attribute Msg)
+equippedArmorActions m =
     case m of
-        Nothing ->
+        Nothing -> 
             []
         
-        Just _ ->
-            [ Html.Events.onClick DisableForestWalk ]
+        Just _ -> 
+            [ Html.Events.onClick UnEquipLeatherArmor ]
 
 -- UPDATE
 
@@ -277,11 +295,20 @@ update msg model =
         LearnForestWalk ->
             updateLearnForestWalk model
         
-        EnableForestWalk ->
-            updateEnableForestWalk model
+        UseForestWalk ->
+            updateUseForestWalk model
         
-        DisableForestWalk ->
-            updateDisableForestWalk model
+        GainLeatherArmor ->
+            updateGainLeatherArmor model
+        
+        BuyLeatherArmor ->
+            updateBuyLeatherArmor model
+        
+        EquipLeatherArmor ->
+            updateEquipLeatherArmor model
+        
+        UnEquipLeatherArmor ->
+            updateUnEquipLeatherArmor model
 
 updateRollDie : Model -> ( Model, Cmd Msg )
 updateRollDie model =
@@ -442,9 +469,11 @@ updateSavePoint : Model -> ( Model, Cmd Msg )
 updateSavePoint model =
     let
         hpGain = (model.maxHitPoints // 10) + 1
+        mpGain = (model.maxMagicPoints // 10) + 1
         newModel =
             { model
                 | hitPoints = min (model.hitPoints + hpGain) model.maxHitPoints
+                , magicPoints = min (model.magicPoints + mpGain) model.maxMagicPoints
             }
     in
     ( newModel, Cmd.none )
@@ -512,22 +541,60 @@ updateLearnForestWalk model =
     in
     ( newModel, Cmd.none )
 
-updateEnableForestWalk : Model -> ( Model, Cmd Msg )
-updateEnableForestWalk model =
+updateUseForestWalk : Model -> ( Model, Cmd Msg )
+updateUseForestWalk model =
     let
+        magicCost = if model.magicPoints >= 1 then 1 else 0
         newModel =
             { model
-                | enabledSkill = Just "Forest Walk"
+                | magicPoints = model.magicPoints - magicCost
             }
     in
     ( newModel, Cmd.none )
 
-updateDisableForestWalk : Model -> ( Model, Cmd Msg )
-updateDisableForestWalk model =
+updateGainLeatherArmor : Model -> ( Model, Cmd Msg )
+updateGainLeatherArmor model =
     let
         newModel =
             { model
-                | enabledSkill = Nothing
+                | armors = "Leather Armor" :: model.armors
+            }
+    in
+    ( newModel, Cmd.none )
+
+updateBuyLeatherArmor : Model -> ( Model, Cmd Msg )
+updateBuyLeatherArmor model =
+    let
+        paid = if model.gold >= 18 then 18 else 0
+        newArmors = if model.gold >= 18 then [ "Leather Armor" ] else []
+        newModel =
+            { model
+                | armors = List.append newArmors model.armors
+                , gold = model.gold - paid
+            }
+    in
+    ( newModel, Cmd.none )
+
+updateEquipLeatherArmor : Model -> ( Model, Cmd Msg )
+updateEquipLeatherArmor model =
+    let
+        newModel =
+            { model
+                | weapons = Maybe.withDefault [] (List.tail model.weapons)
+                , equippedArmor = Just "LeatherArmor"
+                , defense = model.defense + 1
+            }
+    in
+    ( newModel, Cmd.none )
+
+updateUnEquipLeatherArmor : Model -> ( Model, Cmd Msg )
+updateUnEquipLeatherArmor model =
+    let
+        newModel =
+            { model
+                | armors = "Leather Armor" :: model.armors
+                , equippedArmor = Nothing
+                , defense = model.defense - 1
             }
     in
     ( newModel, Cmd.none )
