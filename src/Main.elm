@@ -4,6 +4,7 @@ import Browser
 import Html
 import Html.Events
 import Random
+import Set
 
 type alias Model =
     { rollResult : Maybe Int
@@ -19,6 +20,11 @@ type alias Model =
     , inventory : List String
     , weapons : List String
     , equippedWeapon : Maybe String
+    , skills : Set.Set String
+    , increaseMaxHitPointFlag : Bool
+    , increaseAttackFlag : Bool
+    , increaseDefenseFlag : Bool
+    , enabledSkill : Maybe String
     }
 
 type Msg
@@ -37,6 +43,12 @@ type Msg
     | EquipCopperKnife
     | UnEquipCopperKnife
     | SavePoint
+    | IncreaseMaxHitPoints
+    | IncreaseAttack
+    | IncreaseDefense
+    | LearnForestWalk
+    | EnableForestWalk
+    | DisableForestWalk
 
 type alias Monster =
     { name : String
@@ -73,6 +85,15 @@ owl =
     , goldYield = 2
     }
 
+wolf : Monster
+wolf =
+    { name = "Wolf"
+    , attack = 3
+    , defense = 3
+    , expYield = 3
+    , goldYield = 3
+    }
+
 main : Program () Model Msg
 main =
     Browser.element
@@ -101,6 +122,11 @@ init _ =
             , inventory = []
             , weapons = []
             , equippedWeapon = Nothing
+            , skills = Set.empty
+            , increaseMaxHitPointFlag = False
+            , increaseAttackFlag = False
+            , increaseDefenseFlag = False
+            , enabledSkill = Nothing
             }
     in   
     ( initModel, Cmd.none )
@@ -140,11 +166,24 @@ view model =
                 []
                 [ Html.button (equippedWeaponActions model.equippedWeapon) [ Html.text <| Maybe.withDefault "Nothing" model.equippedWeapon ] ]
             ]
+        , Html.li [] 
+            [ Html.li [] [ Html.text <| "Skills: " ]
+            , Html.ul 
+                []
+                ( List.map (\skill -> Html.button [ Html.Events.onClick EnableForestWalk ] [ Html.text skill ]) (Set.toList model.skills) )
+            ]
+        , Html.li [] 
+            [ Html.li [] [ Html.text <| "Enabled Skill: " ]
+            , Html.ul 
+                []
+                [ Html.button (enabledSkillActions model.enabledSkill) [ Html.text <| Maybe.withDefault "Nothing" model.enabledSkill ] ]
+            ]
         , Html.li [] [ Html.button [ Html.Events.onClick Inn ] [ Html.text <| "Inn" ] ]
         , Html.li [] [ Html.button [ Html.Events.onClick Explore ] [ Html.text <| "Explore" ] ]
         , Html.li [] [ Html.button [ Html.Events.onClick SpringTrap ] [ Html.text <| "Spring Trap" ] ]
         , Html.li [] [ Html.button [ Html.Events.onClick (Fight squirrel) ] [ Html.text <| "Fight Squirrel" ] ]
         , Html.li [] [ Html.button [ Html.Events.onClick (Fight owl) ] [ Html.text <| "Fight Owl" ] ]
+        , Html.li [] [ Html.button [ Html.Events.onClick (Fight wolf) ] [ Html.text <| "Fight Wolf" ] ]
         , Html.li [] [ Html.button [ Html.Events.onClick (Fight bossSquirrel) ] [ Html.text <| "Fight Boss Squirrel" ] ]
         , Html.li [] [ Html.button [ Html.Events.onClick GainGold ] [ Html.text <| "Gain Gold" ] ]
         , Html.li [] [ Html.button [ Html.Events.onClick GainPotion ] [ Html.text <| "Gain Potion" ] ]
@@ -152,6 +191,10 @@ view model =
         , Html.li [] [ Html.button [ Html.Events.onClick GainCopperKnife ] [ Html.text <| "Gain Copper Knife" ] ]
         , Html.li [] [ Html.button [ Html.Events.onClick BuyCopperKnife ] [ Html.text <| "Buy Copper Knife" ] ]
         , Html.li [] [ Html.button [ Html.Events.onClick SavePoint ] [ Html.text <| "Save Point" ] ]
+        , Html.li [] [ Html.button [ Html.Events.onClick IncreaseMaxHitPoints ] [ Html.text <| "Increase Max HP" ] ]
+        , Html.li [] [ Html.button [ Html.Events.onClick IncreaseAttack ] [ Html.text <| "Increase ATK" ] ]
+        , Html.li [] [ Html.button [ Html.Events.onClick IncreaseDefense ] [ Html.text <| "Increase DEF" ] ]
+        , Html.li [] [ Html.button [ Html.Events.onClick LearnForestWalk ] [ Html.text <| "Learn Forest Walk" ] ]
         ]
 
 equippedWeaponActions : Maybe String -> List (Html.Attribute Msg)
@@ -162,6 +205,15 @@ equippedWeaponActions m =
         
         Just _ -> 
             [ Html.Events.onClick UnEquipCopperKnife ]
+
+enabledSkillActions : Maybe String -> List (Html.Attribute Msg)
+enabledSkillActions m =
+    case m of
+        Nothing ->
+            []
+        
+        Just _ ->
+            [ Html.Events.onClick DisableForestWalk ]
 
 -- UPDATE
 
@@ -212,6 +264,24 @@ update msg model =
         
         SavePoint ->
             updateSavePoint model
+        
+        IncreaseMaxHitPoints ->
+            updateIncreaseMaxHitPoints model
+        
+        IncreaseAttack ->
+            updateIncreaseAttack model
+        
+        IncreaseDefense ->
+            updateIncreaseDefense model
+        
+        LearnForestWalk ->
+            updateLearnForestWalk model
+        
+        EnableForestWalk ->
+            updateEnableForestWalk model
+        
+        DisableForestWalk ->
+            updateDisableForestWalk model
 
 updateRollDie : Model -> ( Model, Cmd Msg )
 updateRollDie model =
@@ -375,6 +445,89 @@ updateSavePoint model =
         newModel =
             { model
                 | hitPoints = min (model.hitPoints + hpGain) model.maxHitPoints
+            }
+    in
+    ( newModel, Cmd.none )
+
+updateIncreaseMaxHitPoints : Model -> ( Model, Cmd Msg )
+updateIncreaseMaxHitPoints model =
+    let
+        condition = model.experience >= 5 && not model.increaseMaxHitPointFlag
+        expPaid = if condition then 5 else 0
+        maxHitPointsGained = if condition then 1 else 0 
+        newModel =
+            { model
+                | maxHitPoints = model.maxHitPoints + maxHitPointsGained
+                , experience = model.experience - expPaid
+                , increaseMaxHitPointFlag = True
+            }
+    in
+    ( newModel, Cmd.none )
+
+updateIncreaseAttack : Model -> ( Model, Cmd Msg )
+updateIncreaseAttack model =
+    let
+        condition = model.experience >= 7 && not model.increaseAttackFlag
+        expPaid = if condition then 7 else 0
+        attackGained = if condition then 1 else 0 
+        newModel =
+            { model
+                | attack = model.attack + attackGained
+                , experience = model.experience - expPaid
+                , increaseAttackFlag = True
+            }
+    in
+    ( newModel, Cmd.none )
+
+updateIncreaseDefense : Model -> ( Model, Cmd Msg )
+updateIncreaseDefense model =
+    let
+        condition = model.experience >= 9 && not model.increaseDefenseFlag
+        expPaid = if condition then 9 else 0
+        defenseGained = if condition then 1 else 0 
+        newModel =
+            { model
+                | defense = model.defense + defenseGained
+                , experience = model.experience - expPaid
+                , increaseDefenseFlag = True
+            }
+    in
+    ( newModel, Cmd.none )
+
+updateLearnForestWalk : Model -> ( Model, Cmd Msg )
+updateLearnForestWalk model =
+    let
+        condition = model.experience >= 2
+        expPaid = if condition then 2 else 0
+        newSkills =
+            if condition then
+                Set.insert "Forest Walk" model.skills
+            else
+                model.skills
+        newModel =
+            { model
+                | skills = newSkills
+                , experience = model.experience - expPaid
+            }
+    in
+    ( newModel, Cmd.none )
+
+updateEnableForestWalk : Model -> ( Model, Cmd Msg )
+updateEnableForestWalk model =
+    let
+        newModel =
+            { model
+                | enabledSkill = Just "Forest Walk"
+            }
+    in
+    ( newModel, Cmd.none )
+
+updateDisableForestWalk : Model -> ( Model, Cmd Msg )
+updateDisableForestWalk model =
+    let
+        newModel =
+            { model
+                | enabledSkill = Nothing
             }
     in
     ( newModel, Cmd.none )
