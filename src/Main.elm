@@ -7,7 +7,8 @@ import Random
 import Set
 
 type alias Model =
-    { rollResult : Maybe Int
+    { mode : Mode
+    , rollResult : Maybe Int
     , day : Int
     , maxTime : Int
     , time : Int
@@ -30,12 +31,11 @@ type alias Model =
     , increaseAttackFlag : Bool
     , increaseDefenseFlag : Bool
     , encounteredMonster : Maybe Monster
+    , messages : List String
     }
 
 type Msg
-    = RollDie
-    | GotRollResult Int
-    | Inn
+    = Inn
     | Explore
     | SpringTrap
     | Fight
@@ -59,6 +59,58 @@ type Msg
     | GetTreasure Treasure
     | GenerateMonster (Random.Generator Monster)
     | GetMonster Monster
+    | Leave
+    | Continue
+    | GetExploreNode ExploreNode
+
+type Mode
+    = Exploring ExploreNode
+    | NotExploring
+
+type ExploreNode
+    = TerrainNode
+    | TrapNode
+    | MonsterNode
+    | TreasureNode TreasureQuality
+    | SavePointNode
+
+exploreNodeGenerator : Random.Generator ExploreNode
+exploreNodeGenerator =
+    Random.weighted
+        ( 1, TerrainNode )
+        [ ( 1, TrapNode )
+        , ( 2, MonsterNode )
+        , ( 3, TreasureNode MinorTreasureQuality )
+        , ( 1, TreasureNode MajorTreasureQuality )
+        , ( 2, SavePointNode )
+        ]
+
+exploreNodeToString : ExploreNode -> String
+exploreNodeToString exploreNode =
+    case exploreNode of      
+        TerrainNode ->
+            "Terrain"
+        
+        TrapNode ->
+            "Trap"
+        
+        MonsterNode ->
+            "Monster"
+        
+        TreasureNode treasureQuality ->
+            case treasureQuality of
+                MinorTreasureQuality ->
+                    "Minor Treasure"
+                
+                MajorTreasureQuality ->
+                    "Major Treasure"
+        
+        SavePointNode ->
+            "Save Point"
+
+type TreasureQuality
+    = MinorTreasureQuality
+    | MajorTreasureQuality
 
 type alias Monster =
     { name : String
@@ -109,12 +161,23 @@ wolf =
     , goldYield = 3
     }
 
+bear : Monster
+bear =
+    { name = "Bear"
+    , attack = 7
+    , defense = 5
+    , agility = 1
+    , expYield = 6
+    , goldYield = 6
+    }
+
 randomEncounterTable : Random.Generator Monster
 randomEncounterTable =
     Random.weighted
-        ( 6, squirrel )
-        [ ( 3, owl )
-        , ( 1, wolf )
+        ( 10, squirrel )
+        [ ( 6, owl )
+        , ( 3, wolf )
+        , ( 1, bear )
         ]
 
 type Treasure
@@ -157,7 +220,8 @@ init : flags -> ( Model, Cmd msg )
 init _ =
     let
         initModel =
-            { rollResult = Nothing
+            { mode = NotExploring
+            , rollResult = Nothing
             , day = 1
             , maxTime = 3
             , time = 3
@@ -180,6 +244,7 @@ init _ =
             , increaseAttackFlag = False
             , increaseDefenseFlag = False
             , encounteredMonster = Nothing
+            , messages = []
             }
     in   
     ( initModel, Cmd.none )
@@ -190,11 +255,7 @@ view : Model -> Html.Html Msg
 view model =
     Html.ul
         []
-        [ Html.li [] 
-            [ Html.button [ Html.Events.onClick RollDie ] [ Html.text <| "Roll Die" ]
-            , Html.text <| "Result: " ++ Maybe.withDefault "Nothing" (Maybe.map String.fromInt model.rollResult)
-            ]
-        , Html.li [] [ Html.text <| "Day: " ++ String.fromInt model.day ]
+        [ Html.li [] [ Html.text <| "Day: " ++ String.fromInt model.day ]
         , Html.li [] [ Html.text <| "Time: " ++ String.fromInt model.time ++ " / " ++ String.fromInt model.maxTime ]
         , Html.li [] [ Html.text <| "EXP: " ++ String.fromInt model.experience ]
         , Html.li [] [ Html.text <| "HP: " ++ String.fromInt model.hitPoints ++ " / " ++ String.fromInt model.maxHitPoints ]
@@ -245,19 +306,83 @@ view model =
                 []
                 [ Html.text <| Maybe.withDefault "Nothing" (Maybe.map .name model.encounteredMonster) ]
             ]
-        , Html.li [] [ Html.button [ Html.Events.onClick Inn ] [ Html.text <| "Inn" ] ]
+        , case model.mode of
+            Exploring exploreNode ->
+                viewExploring exploreNode model.messages
+            
+            NotExploring ->
+                viewNotExploring
+        ]
+
+viewOption : Msg -> String -> Html.Html Msg
+viewOption msg text =
+    Html.li []
+        [ Html.button [ Html.Events.onClick msg ]
+            [ Html.text text
+            ]
+        ]
+
+viewExploring : ExploreNode -> List String -> Html.Html Msg
+viewExploring exploreNode messages =
+    let
+        options =
+            case exploreNode of
+                TerrainNode ->
+                    [ viewOption Leave "Leave"
+                    ]
+                
+                TrapNode ->
+                    [ viewOption Leave "Leave"
+                    , viewOption SpringTrap "Spring Trap"
+                    ]
+                
+                MonsterNode ->
+                    [ viewOption Fight "Fight"
+                    , viewOption Flee "Flee"
+                    ]
+                
+                TreasureNode treasureQuality ->
+                    let
+                        treasureDesc =
+                            case treasureQuality of
+                                MinorTreasureQuality ->
+                                    { generator = GenerateTreasure minorTreasure
+                                    , label = "Cut Bush"
+                                    }
+                                
+                                MajorTreasureQuality ->
+                                    { generator = GenerateTreasure majorTreasure
+                                    , label = "Open Chest"
+                                    }
+                    in
+                    [ viewOption Continue "Continue"
+                    , viewOption treasureDesc.generator treasureDesc.label
+                    ]
+            
+                SavePointNode ->
+                    [ viewOption Leave "Leave"
+                    , viewOption Continue "Continue"
+                    ]
+
+    in
+    Html.ul []
+        [ Html.text <| "Node: " ++ exploreNodeToString exploreNode
+        , Html.ul [] options
+        , Html.ul [] (List.map (\m -> (Html.li [] [ Html.text m ])) messages )
+        ]
+
+viewNotExploring : Html.Html Msg
+viewNotExploring =
+    Html.ul []
+        [ Html.li [] [ Html.button [ Html.Events.onClick Inn ] [ Html.text <| "Inn" ] ]
         , Html.li [] [ Html.button [ Html.Events.onClick Explore ] [ Html.text <| "Explore" ] ]
-        , Html.li [] [ Html.button [ Html.Events.onClick SpringTrap ] [ Html.text <| "Spring Trap" ] ]
-        , Html.li [] [ Html.button [ Html.Events.onClick (GenerateMonster randomEncounterTable) ] [ Html.text <| "Encounter Monster" ] ]
-        , Html.li [] [ Html.button [ Html.Events.onClick Fight ] [ Html.text <| "Fight" ] ]
-        , Html.li [] [ Html.button [ Html.Events.onClick Flee ] [ Html.text <| "Flee" ] ]
+        
         , Html.li [] [ Html.button [ Html.Events.onClick (BossFight bossSquirrel) ] [ Html.text <| "Fight Boss Squirrel" ] ]
         , Html.li [] [ Html.button [ Html.Events.onClick BuyPotion ] [ Html.text <| "Buy Potion" ] ]
         , Html.li [] [ Html.button [ Html.Events.onClick BuyCopperKnife ] [ Html.text <| "Buy Copper Knife" ] ]
-        , Html.li [] [ Html.button [ Html.Events.onClick (GenerateTreasure minorTreasure) ] [ Html.text <| "Cut Grass" ] ]
-        , Html.li [] [ Html.button [ Html.Events.onClick (GenerateTreasure majorTreasure) ] [ Html.text <| "Open Treasure Chest" ] ]
+        
         , Html.li [] [ Html.button [ Html.Events.onClick BuyLeatherArmor ] [ Html.text <| "Buy Leather Armor" ] ]
-        , Html.li [] [ Html.button [ Html.Events.onClick SavePoint ] [ Html.text <| "Save Point" ] ]
+        
         , Html.li [] [ Html.button [ Html.Events.onClick IncreaseMaxHitPoints ] [ Html.text <| "Increase Max HP" ] ]
         , Html.li [] [ Html.button [ Html.Events.onClick IncreaseAttack ] [ Html.text <| "Increase ATK" ] ]
         , Html.li [] [ Html.button [ Html.Events.onClick IncreaseDefense ] [ Html.text <| "Increase DEF" ] ]
@@ -286,102 +411,90 @@ equippedArmorActions m =
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model = 
-    case msg of
-        RollDie ->
-            updateRollDie model
-        
-        GotRollResult result ->
-            updateGotRollResult result model
-        
-        Inn ->
+    case ( msg, model.mode ) of
+        ( Inn, NotExploring ) ->
             updateInn model
         
-        Explore ->
+        ( Explore, NotExploring ) ->
             updateExplore model
         
-        SpringTrap ->
+        ( SpringTrap, Exploring TrapNode ) ->
             updateSpringTrap model
         
-        Fight ->
+        ( Fight, Exploring MonsterNode ) ->
             updateFight model
         
-        BossFight monster ->
+        ( BossFight monster, NotExploring ) ->
             updateBossFight monster model
         
-        Flee ->
+        ( Flee, Exploring MonsterNode ) ->
             updateFlee model
         
-        BuyPotion ->
+        ( BuyPotion, NotExploring ) ->
             updateBuyPotion model
         
-        BuyCopperKnife ->
+        ( BuyCopperKnife, NotExploring ) ->
             updateBuyCopperKnife model
         
-        EquipCopperKnife ->
+        ( EquipCopperKnife, _ ) ->
             updateEquipCopperKnife model
         
-        UnEquipCopperKnife ->
+        ( UnEquipCopperKnife, _ ) ->
             updateUnEquipCopperKnife model
         
-        UsePotion ->
+        ( UsePotion, _ ) ->
             updateUsePotion model
         
-        SavePoint ->
+        ( SavePoint, Exploring SavePointNode ) ->
             updateSavePoint model
         
-        IncreaseMaxHitPoints ->
+        ( IncreaseMaxHitPoints, _ ) ->
             updateIncreaseMaxHitPoints model
         
-        IncreaseAttack ->
+        ( IncreaseAttack, _ ) ->
             updateIncreaseAttack model
         
-        IncreaseDefense ->
+        ( IncreaseDefense, _ ) ->
             updateIncreaseDefense model
         
-        LearnForestWalk ->
+        ( LearnForestWalk, _ ) ->
             updateLearnForestWalk model
         
-        UseForestWalk ->
+        ( UseForestWalk, Exploring _ ) ->
             updateUseForestWalk model
         
-        BuyLeatherArmor ->
+        ( BuyLeatherArmor, NotExploring ) ->
             updateBuyLeatherArmor model
         
-        EquipLeatherArmor ->
+        ( EquipLeatherArmor, _ ) ->
             updateEquipLeatherArmor model
         
-        UnEquipLeatherArmor ->
+        ( UnEquipLeatherArmor, _ ) ->
             updateUnEquipLeatherArmor model
         
-        GenerateTreasure distribution ->
+        ( GenerateTreasure distribution, Exploring ( TreasureNode _ ) ) ->
             updateGenerateTreasure distribution model
         
-        GetTreasure treasure ->
+        ( GetTreasure treasure, Exploring ( TreasureNode _ ) ) ->
             updateGetTreasure treasure model
         
-        GenerateMonster distribution ->
+        ( GenerateMonster distribution, Exploring MonsterNode ) ->
             updateGenerateMonster distribution model
         
-        GetMonster monster ->
+        ( GetMonster monster, Exploring MonsterNode ) ->
             updateGetMonster monster model
-
-updateRollDie : Model -> ( Model, Cmd Msg )
-updateRollDie model =
-    let
-        getRollResultCmd =
-            Random.generate GotRollResult (Random.int 1 6)  
-    in
-    ( model, getRollResultCmd )
-
-updateGotRollResult : Int -> Model -> ( Model, Cmd Msg )
-updateGotRollResult result model =
-    let
-        newModel =
-            { model
-                | rollResult = Just result
-            }
-    in
-    ( newModel, Cmd.none )
+        
+        ( Leave, Exploring _ ) ->
+            updateLeave model
+        
+        ( Continue, Exploring _ ) ->
+            updateContinue model
+        
+        ( GetExploreNode exploreNode, _ ) ->
+            updateGetExploreNode exploreNode model
+        
+        _ ->
+            ( model, Cmd.none )
 
 updateInn : Model -> ( Model, Cmd Msg )
 updateInn model =
@@ -396,13 +509,17 @@ updateInn model =
 
 updateExplore : Model -> ( Model, Cmd Msg )
 updateExplore model =
-    let 
+    let
+        canExplore = model.time >= 1
+        timeCost = if canExplore then 1 else 0
+        nextCmd = if canExplore then getNextExploreNode else Cmd.none
         newModel =
             { model
-                | time = max (model.time - 1) 0
+                | time = model.time - timeCost
+                , messages = []
             }
     in
-    ( newModel, Cmd.none )
+    ( newModel, nextCmd )
 
 updateSpringTrap : Model -> ( Model, Cmd Msg )
 updateSpringTrap model =
@@ -412,7 +529,7 @@ updateSpringTrap model =
                 | hitPoints = max (model.hitPoints - 1) 0
             }
     in
-    ( newModel, Cmd.none )
+    ( newModel, getNextExploreNode )
 
 updateBossFight : Monster -> Model -> ( Model, Cmd Msg )
 updateBossFight monster model =
@@ -451,7 +568,7 @@ updateFight model =
                     model
 
     in
-    ( newModel, Cmd.none )
+    ( newModel, getNextExploreNode )
 
 updateFlee : Model -> ( Model, Cmd Msg )
 updateFlee model =
@@ -467,30 +584,11 @@ updateFlee model =
                     { model
                         | hitPoints = max (model.hitPoints - fleeDamage) 0
                         , encounteredMonster = Nothing
+                        , mode = NotExploring
                     }
                 
                 Nothing ->
                     model
-    in
-    ( newModel, Cmd.none )
-
-updateGainGold : Model -> ( Model, Cmd Msg )
-updateGainGold model =
-    let
-        newModel =
-            { model
-                | gold = model.gold + 1
-            }
-    in
-    ( newModel, Cmd.none )
-
-updateGainPotion : Model -> ( Model, Cmd Msg )
-updateGainPotion model =
-    let
-        newModel =
-            { model
-                | inventory = "Potion" :: model.inventory
-            }
     in
     ( newModel, Cmd.none )
 
@@ -503,16 +601,6 @@ updateBuyPotion model =
             { model
                 | inventory = List.append newItems model.inventory
                 , gold = model.gold - paid
-            }
-    in
-    ( newModel, Cmd.none )
-
-updateGainCopperKnife : Model -> ( Model, Cmd Msg )
-updateGainCopperKnife model =
-    let
-        newModel =
-            { model
-                | weapons = "Copper Knife" :: model.weapons
             }
     in
     ( newModel, Cmd.none )
@@ -652,16 +740,6 @@ updateUseForestWalk model =
     in
     ( newModel, Cmd.none )
 
-updateGainLeatherArmor : Model -> ( Model, Cmd Msg )
-updateGainLeatherArmor model =
-    let
-        newModel =
-            { model
-                | armors = "Leather Armor" :: model.armors
-            }
-    in
-    ( newModel, Cmd.none )
-
 updateBuyLeatherArmor : Model -> ( Model, Cmd Msg )
 updateBuyLeatherArmor model =
     let
@@ -730,7 +808,7 @@ updateGetTreasure treasure model =
                 ArmorTreasure armor ->
                     { model | armors = armor :: model.armors }
     in
-    ( newModel, Cmd.none )
+    ( newModel, getNextExploreNode )
 
 updateGenerateMonster : Random.Generator Monster -> Model -> ( Model, Cmd Msg )
 updateGenerateMonster distribution model =
@@ -743,12 +821,91 @@ updateGenerateMonster distribution model =
 updateGetMonster : Monster -> Model -> ( Model, Cmd Msg )
 updateGetMonster monster model =
     let
+        encounterMessage = "A wild " ++ monster.name ++ " appears!"
         newModel =
             { model
                 | encounteredMonster = Just monster
+                , messages = encounterMessage :: model.messages
             }
     in
     ( newModel, Cmd.none )
+
+updateLeave : Model -> ( Model, Cmd Msg )
+updateLeave model =
+    let
+        newModel =
+            { model
+                | mode = NotExploring
+            }
+    in
+    ( newModel, Cmd.none )
+
+updateContinue : Model -> ( Model, Cmd Msg )
+updateContinue model =
+    let
+        newModel =
+            model
+        
+    in
+    ( newModel, getNextExploreNode )
+
+updateGetExploreNode : ExploreNode -> Model -> ( Model, Cmd Msg )
+updateGetExploreNode exploreNode model =
+    let
+        newCmd =
+            case exploreNode of
+                MonsterNode ->
+                    Random.generate GetMonster randomEncounterTable
+
+                _ ->
+                    Cmd.none
+        
+        newModel =
+            case exploreNode of
+                SavePointNode ->
+                    let
+                        hpGain = (model.maxHitPoints // 10) + 1
+                        mpGain = (model.maxMagicPoints // 10) + 1
+                    in
+                    { model
+                        | hitPoints = min (model.hitPoints + hpGain) model.maxHitPoints
+                        , magicPoints = min (model.magicPoints + mpGain) model.maxMagicPoints
+                    }
+                
+                _ ->
+                    model
+        
+        nextMessages =
+            case exploreNode of
+                TerrainNode ->
+                    [ "You find a dense grove of trees. You cannot proceed." ]
+                
+                TrapNode ->
+                    [ "You sense danger..." ]
+                
+                TreasureNode MinorTreasureQuality ->
+                    [ "You find a thicket of grass and see something inside it." ]
+                
+                TreasureNode MajorTreasureQuality ->
+                    [ "What luck! You find a treasure chest!" ]
+                
+                SavePointNode ->
+                    [ "You come across a rest area. A path leads back to town." ]
+                
+                _ ->
+                    []
+        
+        newModel2 =
+            { newModel
+                | mode = Exploring exploreNode
+                , messages = List.append nextMessages newModel.messages
+            }
+    in
+    ( newModel2, newCmd )
+
+getNextExploreNode : Cmd Msg
+getNextExploreNode =
+    Random.generate GetExploreNode exploreNodeGenerator
 
 -- SUBSCRIPTIONS
 
