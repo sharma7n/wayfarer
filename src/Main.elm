@@ -32,6 +32,7 @@ type alias Model =
     , increaseDefenseFlag : Bool
     , encounteredMonster : Maybe Monster
     , messages : List String
+    , activeSkills : Set.Set String
     }
 
 type Msg
@@ -245,6 +246,7 @@ init _ =
             , increaseDefenseFlag = False
             , encounteredMonster = Nothing
             , messages = []
+            , activeSkills = Set.empty
             }
     in   
     ( initModel, Cmd.none )
@@ -301,6 +303,12 @@ view model =
                 ( List.map (\skill -> Html.button [ Html.Events.onClick UseForestWalk ] [ Html.text skill ]) (Set.toList model.skills) )
             ]
         , Html.li [] 
+            [ Html.li [] [ Html.text <| "Active Skills: " ]
+            , Html.ul 
+                []
+                ( List.map (\skill -> Html.li [] [ Html.text skill ]) (Set.toList model.activeSkills) )
+            ]
+        , Html.li [] 
             [ Html.li [] [ Html.text <| "Encountered Monster: " ]
             , Html.ul 
                 []
@@ -308,7 +316,7 @@ view model =
             ]
         , case model.mode of
             Exploring exploreNode ->
-                viewExploring exploreNode model.messages
+                viewExploring exploreNode model
             
             NotExploring ->
                 viewNotExploring
@@ -322,14 +330,20 @@ viewOption msg text =
             ]
         ]
 
-viewExploring : ExploreNode -> List String -> Html.Html Msg
-viewExploring exploreNode messages =
+viewExploring : ExploreNode -> Model -> Html.Html Msg
+viewExploring exploreNode model =
     let
+        messages = model.messages
         options =
             case exploreNode of
                 TerrainNode ->
-                    [ viewOption Leave "Leave"
-                    ]
+                    if Set.member "Forest Walk" model.activeSkills then
+                        [ viewOption Leave "Leave"
+                        , viewOption Continue "Continue"
+                        ]
+                    else
+                        [ viewOption Leave "Leave"
+                        ]
                 
                 TrapNode ->
                     [ viewOption Leave "Leave"
@@ -517,6 +531,7 @@ updateExplore model =
             { model
                 | time = model.time - timeCost
                 , messages = []
+                , activeSkills = Set.empty
             }
     in
     ( newModel, nextCmd )
@@ -585,6 +600,7 @@ updateFlee model =
                         | hitPoints = max (model.hitPoints - fleeDamage) 0
                         , encounteredMonster = Nothing
                         , mode = NotExploring
+                        , activeSkills = Set.empty
                     }
                 
                 Nothing ->
@@ -736,6 +752,7 @@ updateUseForestWalk model =
         newModel =
             { model
                 | magicPoints = model.magicPoints - magicCost
+                , activeSkills = Set.insert "Forest Walk" model.activeSkills
             }
     in
     ( newModel, Cmd.none )
@@ -836,6 +853,7 @@ updateLeave model =
         newModel =
             { model
                 | mode = NotExploring
+                , activeSkills = Set.empty
             }
     in
     ( newModel, Cmd.none )
@@ -878,7 +896,10 @@ updateGetExploreNode exploreNode model =
         nextMessages =
             case exploreNode of
                 TerrainNode ->
-                    [ "You find a dense grove of trees. You cannot proceed." ]
+                    if Set.member "Forest Walk" newModel.activeSkills then
+                        [ "You find a dense grove of trees. You find a narrow path between them to continue." ]
+                    else
+                        [ "You find a dense grove of trees. You cannot proceed." ]
                 
                 TrapNode ->
                     [ "You sense danger..." ]
