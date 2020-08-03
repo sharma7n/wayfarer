@@ -4,6 +4,7 @@ import Browser
 import Html
 import Html.Events
 import Random
+import Random.Extra
 import Set
 
 type alias Model =
@@ -92,6 +93,62 @@ type alias Map =
     , goalTreasureGenerator : Random.Generator Treasure
     }
 
+mapGenerator : Int -> Random.Generator Map
+mapGenerator level =
+    let
+        levelGenerator =
+            Random.int (level + 1) (round ((toFloat level) * 1.5) + 1)
+        
+        byLevel generator =
+            levelGenerator
+                |> Random.andThen generator
+        
+        nameGenerator genLv =
+            Random.constant <| "Forest Lv. " ++ String.fromInt genLv
+        
+        depthGenerator genLv =
+            Random.int (10 + genLv) (10 + (2 * genLv))
+        
+        exploreNodeGeneratorGenerator genLv =
+            let
+                distribution lower upper node =
+                    Random.int lower upper
+                        |> Random.andThen (\freq -> ( freq, node ))
+                
+                savePointNodeDistributionGenerator =
+                    distribution 1 (1 + (genLv // 4)) SavePointNode
+                
+                otherExploreNodesDistributionGenerator =
+                    ( distribution 4 (4 + (genLv // 2)) TerrainNode ) |> Random.andThen (\terrainNodeDistribution ->
+                    ( distribution 4 (4 + genLv) TrapNode ) |> Random.andThen (\trapNodeDistribution ->
+                    ( distribution 6 (6 + genLv) MonsterNode ) |> Random.andThen (\monsterNodeDistribution ->
+                    ( distribution 4 (4 + (genLv // 2) (TreasureNode MinorTreasureQuality)) ) |> Random.andThen (\minorTreasureNodeDistribution ->
+                    ( distribution 2 (2 + (genLv // 4)) (TreasureNode MajorTreasureQuality) ) |> Random.andThen (\majorTreasureNodeDistribution ->
+                        Random.constant <|
+                            [ terrainNodeDistribution
+                            , trapNodeDistribution
+                            , monsterNodeDistribution
+                            , minorTreasureNodeDistribution
+                            , majorTreasureNodeDistribution
+                            ]
+                    )))))
+            in
+            Random.map2 Random.weighted
+                savePointNodeDistributionGenerator
+                otherExploreNodesDistributionGenerator
+        
+        monsterGeneratorGenerator genLv =
+
+    in
+    Random.map Map nameGenerator
+        |> Random.Extra.andMap levelGenerator
+        |> Random.Extra.andMap ( byLevel depthGenerator )
+        |> Random.Extra.andMap ( byLevel exploreNodeGeneratorGenerator )
+        |> Random.Extra.andMap ( byLevel monsterGeneratorGenerator )
+        |> Random.Extra.andMap ( byLevel minorTreasureGeneratorGenerator )
+        |> Random.Extra.andMap ( byLevel majorTreasureGeneratorGenerator )
+        |> Random.Extra.andMap ( byLevel goalTreasureGeneratorGenerator )
+
 exploreNodeToString : ExploreNode -> String
 exploreNodeToString exploreNode =
     case exploreNode of      
@@ -127,7 +184,9 @@ type TreasureQuality
     | GoalTreasureQuality
 
 type alias Monster =
-    { name : String
+    { level : Int
+    , encounterRate : Float
+    , name : String
     , attack : Int
     , defense : Int
     , agility : Int
@@ -137,7 +196,9 @@ type alias Monster =
 
 missingno : Monster
 missingno =
-    { name = "Missingno"
+    { level = 0
+    , encounterRate = 0
+    , name = "Missingno"
     , attack = 0
     , defense = 0
     , agility = 0
@@ -147,7 +208,9 @@ missingno =
 
 squirrel : Monster
 squirrel =
-    { name = "Squirrel"
+    { level = 1
+    , encounterRate = 1
+    , name = "Squirrel"
     , attack = 1
     , defense = 1
     , agility = 2
@@ -157,7 +220,9 @@ squirrel =
 
 bossSquirrel : Monster
 bossSquirrel =
-    { name = "Boss Squirrel"
+    { level = 2
+    , encounterRate = 0
+    , name = "Boss Squirrel"
     , attack = 8
     , defense = 2
     , agility = 1
@@ -167,7 +232,9 @@ bossSquirrel =
 
 owl : Monster
 owl =
-    { name = "Owl"
+    { level = 1
+    , encounterRate = 0.5
+    , name = "Owl"
     , attack = 1
     , defense = 2
     , agility = 1
@@ -177,7 +244,9 @@ owl =
 
 wolf : Monster
 wolf =
-    { name = "Wolf"
+    { level = 2
+    , encounterRate = 1
+    , name = "Wolf"
     , attack = 3
     , defense = 3
     , agility = 1
@@ -187,13 +256,22 @@ wolf =
 
 bear : Monster
 bear =
-    { name = "Bear"
+    { level = 3
+    , encounterRate = 0.5
+    , name = "Bear"
     , attack = 7
     , defense = 5
     , agility = 1
     , expYield = 6
     , goldYield = 6
     }
+
+allMonsters =
+    [ squirrel
+    , owl
+    , wolf
+    , bear
+    ]
 
 type Treasure
     = TrapTreasure Int
