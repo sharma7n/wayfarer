@@ -12,6 +12,8 @@ type alias Model =
     , day : Int
     , maxTime : Int
     , time : Int
+    , level : Int
+    , totalExperience : Int
     , experience : Int
     , maxHitPoints : Int
     , hitPoints : Int
@@ -34,11 +36,13 @@ type alias Model =
     , messages : List String
     , activeSkills : Set.Set String
     , depth : Int
+    , maps : List Map
+    , currentMap : Maybe Map
     }
 
 type Msg
     = Inn
-    | Explore
+    | Explore Map
     | SpringTrap
     | Fight
     | BossFight Monster
@@ -77,16 +81,16 @@ type ExploreNode
     | SavePointNode
     | GoalNode
 
-exploreNodeGenerator : Random.Generator ExploreNode
-exploreNodeGenerator =
-    Random.weighted
-        ( 1, TerrainNode )
-        [ ( 1, TrapNode )
-        , ( 2, MonsterNode )
-        , ( 3, TreasureNode MinorTreasureQuality )
-        , ( 1, TreasureNode MajorTreasureQuality )
-        , ( 2, SavePointNode )
-        ]
+type alias Map =
+    { name : String
+    , level : Int
+    , depth : Int
+    , exploreNodeGenerator : Random.Generator ExploreNode
+    , monsterGenerator : Random.Generator Monster
+    , minorTreasureGenerator : Random.Generator Treasure
+    , majorTreasureGenerator : Random.Generator Treasure
+    , goalTreasureGenerator : Random.Generator Treasure
+    }
 
 exploreNodeToString : ExploreNode -> String
 exploreNodeToString exploreNode =
@@ -107,6 +111,9 @@ exploreNodeToString exploreNode =
                 
                 MajorTreasureQuality ->
                     "Major Treasure"
+                
+                GoalTreasureQuality ->
+                    "Goal Treasure"
         
         SavePointNode ->
             "Save Point"
@@ -117,6 +124,7 @@ exploreNodeToString exploreNode =
 type TreasureQuality
     = MinorTreasureQuality
     | MajorTreasureQuality
+    | GoalTreasureQuality
 
 type alias Monster =
     { name : String
@@ -125,6 +133,16 @@ type alias Monster =
     , agility : Int
     , expYield : Int
     , goldYield : Int
+    }
+
+missingno : Monster
+missingno =
+    { name = "Missingno"
+    , attack = 0
+    , defense = 0
+    , agility = 0
+    , expYield = 0
+    , goldYield = 0
     }
 
 squirrel : Monster
@@ -177,15 +195,6 @@ bear =
     , goldYield = 6
     }
 
-randomEncounterTable : Random.Generator Monster
-randomEncounterTable =
-    Random.weighted
-        ( 10, squirrel )
-        [ ( 6, owl )
-        , ( 3, wolf )
-        , ( 1, bear )
-        ]
-
 type Treasure
     = TrapTreasure Int
     | EmptyTreasure
@@ -193,29 +202,6 @@ type Treasure
     | ItemTreasure String
     | WeaponTreasure String
     | ArmorTreasure String
-
-minorTreasure =
-    Random.weighted
-        ( 3, EmptyTreasure )
-        [ (1, TrapTreasure 1 )
-        , (1, GoldTreasure 1 )
-        , (1, ItemTreasure "Potion" )
-        ]
-
-majorTreasure =
-    Random.weighted
-        ( 1, TrapTreasure 1 )
-        [ ( 3, GoldTreasure 1 )
-        , ( 3, ItemTreasure "Potion" )
-        , ( 1, WeaponTreasure "Copper Knife" )
-        , ( 1, ArmorTreasure "Leather Armor" )
-        ]
-
-goalTreasure =
-    Random.weighted
-        ( 1, WeaponTreasure "Copper Knife" )
-        [ ( 1, ArmorTreasure "Leather Armor" )
-        ]
 
 main : Program () Model Msg
 main =
@@ -237,6 +223,8 @@ init _ =
             , day = 1
             , maxTime = 3
             , time = 3
+            , level = 1
+            , totalExperience = 0
             , experience = 0
             , maxHitPoints = 8
             , hitPoints = 8
@@ -259,6 +247,49 @@ init _ =
             , messages = []
             , activeSkills = Set.empty
             , depth = 0
+            , maps =
+                [ { name = "Forest Lv. 1"
+                  , level = 1
+                  , depth = 9
+                  , exploreNodeGenerator =
+                    Random.weighted
+                        ( 1, TerrainNode )
+                        [ ( 1, TrapNode )
+                        , ( 2, MonsterNode )
+                        , ( 3, TreasureNode MinorTreasureQuality )
+                        , ( 1, TreasureNode MajorTreasureQuality )
+                        , ( 2, SavePointNode )
+                        ]
+                  , monsterGenerator =
+                    Random.weighted
+                        ( 10, squirrel )
+                        [ ( 6, owl )
+                        , ( 3, wolf )
+                        , ( 1, bear )
+                        ]
+                  , minorTreasureGenerator =
+                    Random.weighted
+                        ( 3, EmptyTreasure )
+                        [ (1, TrapTreasure 1 )
+                        , (1, GoldTreasure 1 )
+                        , (1, ItemTreasure "Potion" )
+                        ]
+                  , majorTreasureGenerator =
+                    Random.weighted
+                        ( 1, TrapTreasure 1 )
+                        [ ( 3, GoldTreasure 1 )
+                        , ( 3, ItemTreasure "Potion" )
+                        , ( 1, WeaponTreasure "Copper Knife" )
+                        , ( 1, ArmorTreasure "Leather Armor" )
+                        ]
+                  , goalTreasureGenerator =
+                    Random.weighted
+                        ( 1, WeaponTreasure "Copper Knife" )
+                        [ ( 1, ArmorTreasure "Leather Armor" )
+                        ]
+                  }
+                ]
+            , currentMap = Nothing
             }
     in   
     ( initModel, Cmd.none )
@@ -271,7 +302,8 @@ view model =
         []
         [ Html.li [] [ Html.text <| "Day: " ++ String.fromInt model.day ]
         , Html.li [] [ Html.text <| "Time: " ++ String.fromInt model.time ++ " / " ++ String.fromInt model.maxTime ]
-        , Html.li [] [ Html.text <| "EXP: " ++ String.fromInt model.experience ]
+        , Html.li [] [ Html.text <| "Level: " ++ String.fromInt model.level ]
+        , Html.li [] [ Html.text <| "EXP: " ++ String.fromInt model.experience ++ " / " ++ String.fromInt model.totalExperience ++ " / " ++ String.fromInt (model.level * model.level * 10) ]
         , Html.li [] [ Html.text <| "HP: " ++ String.fromInt model.hitPoints ++ " / " ++ String.fromInt model.maxHitPoints ]
         , Html.li [] [ Html.text <| "MP: " ++ String.fromInt model.magicPoints ++ " / " ++ String.fromInt model.maxMagicPoints ]
         , Html.li [] [ Html.text <| "ATK: " ++ String.fromInt model.attack ]
@@ -331,7 +363,7 @@ view model =
                 viewExploring exploreNode model
             
             NotExploring ->
-                viewNotExploring
+                viewNotExploring model
         ]
 
 viewOption : Msg -> String -> Html.Html Msg
@@ -341,6 +373,27 @@ viewOption msg text =
             [ Html.text text
             ]
         ]
+
+getTreasureGenerator : TreasureQuality -> Model -> Random.Generator Treasure
+getTreasureGenerator treasureQuality model =
+    let
+        defaultGenerator =
+            Random.constant EmptyTreasure
+        
+        getter =
+            case treasureQuality of
+                MinorTreasureQuality ->
+                    .minorTreasureGenerator
+                
+                MajorTreasureQuality ->
+                    .majorTreasureGenerator
+                
+                GoalTreasureQuality ->
+                    .goalTreasureGenerator
+    in
+    model.currentMap
+        |> Maybe.map getter
+        |> Maybe.withDefault defaultGenerator
 
 viewExploring : ExploreNode -> Model -> Html.Html Msg
 viewExploring exploreNode model =
@@ -372,12 +425,17 @@ viewExploring exploreNode model =
                         treasureDesc =
                             case treasureQuality of
                                 MinorTreasureQuality ->
-                                    { generator = GenerateTreasure minorTreasure
+                                    { generator = GenerateTreasure <| getTreasureGenerator MinorTreasureQuality model
                                     , label = "Cut Bush"
                                     }
                                 
                                 MajorTreasureQuality ->
-                                    { generator = GenerateTreasure majorTreasure
+                                    { generator = GenerateTreasure <| getTreasureGenerator MajorTreasureQuality model
+                                    , label = "Open Chest"
+                                    }
+                                
+                                GoalTreasureQuality ->
+                                    { generator = GenerateTreasure <| getTreasureGenerator GoalTreasureQuality model
                                     , label = "Open Chest"
                                     }
                     in
@@ -402,12 +460,12 @@ viewExploring exploreNode model =
         , Html.ul [] (List.map (\m -> (Html.li [] [ Html.text m ])) messages )
         ]
 
-viewNotExploring : Html.Html Msg
-viewNotExploring =
+viewNotExploring : Model -> Html.Html Msg
+viewNotExploring model =
     Html.ul []
         [ Html.li [] [ Html.button [ Html.Events.onClick Inn ] [ Html.text <| "Inn" ] ]
-        , Html.li [] [ Html.button [ Html.Events.onClick Explore ] [ Html.text <| "Explore" ] ]
-        
+        , Html.li []
+            ( List.map (\map -> Html.button [ Html.Events.onClick <| Explore map ] [ Html.text <| "Explore: " ++ map.name ]) model.maps )
         , Html.li [] [ Html.button [ Html.Events.onClick (BossFight bossSquirrel) ] [ Html.text <| "Fight Boss Squirrel" ] ]
         , Html.li [] [ Html.button [ Html.Events.onClick BuyPotion ] [ Html.text <| "Buy Potion" ] ]
         , Html.li [] [ Html.button [ Html.Events.onClick BuyCopperKnife ] [ Html.text <| "Buy Copper Knife" ] ]
@@ -446,8 +504,8 @@ update msg model =
         ( Inn, NotExploring ) ->
             updateInn model
         
-        ( Explore, NotExploring ) ->
-            updateExplore model
+        ( Explore map, NotExploring ) ->
+            updateExplore map model
         
         ( SpringTrap, Exploring TrapNode ) ->
             updateSpringTrap model
@@ -544,18 +602,19 @@ updateInn model =
     in
     ( newModel, Cmd.none )
 
-updateExplore : Model -> ( Model, Cmd Msg )
-updateExplore model =
+updateExplore : Map -> Model -> ( Model, Cmd Msg )
+updateExplore map model =
     let
         canExplore = model.time >= 1
         timeCost = if canExplore then 1 else 0
-        nextCmd = if canExplore then getNextExploreNode else Cmd.none
+        nextCmd = if canExplore then getNextExploreNode (Just map) else Cmd.none
         newModel =
             { model
                 | time = model.time - timeCost
                 , messages = []
                 , activeSkills = Set.empty
                 , depth = 0
+                , currentMap = Just map
             }
     in
     ( newModel, nextCmd )
@@ -568,20 +627,21 @@ updateSpringTrap model =
                 | hitPoints = max (model.hitPoints - 1) 0
             }
     in
-    ( newModel, getNextExploreNode )
+    ( newModel, getNextExploreNode model.currentMap )
 
 updateBossFight : Monster -> Model -> ( Model, Cmd Msg )
 updateBossFight monster model =
     let
         damage = max (monster.attack - model.defense) 0
-        expGain = if model.attack >= monster.defense then monster.expYield else 0
-        goldGain = if model.attack >= monster.defense then monster.goldYield else 0
+        win = model.attack >= monster.defense
+        goldGain = if win then monster.goldYield else 0
+        expGainer = if win then updateExpGain monster.expYield else \m -> m 
         newModel =
             { model
                 | hitPoints = max (model.hitPoints - damage) 0
-                , experience = model.experience + expGain
                 , gold = model.gold + goldGain
             }
+                |> expGainer
     in
     ( newModel, Cmd.none )
 
@@ -593,22 +653,50 @@ updateFight model =
                 Just monster ->
                     let
                         damage = max (monster.attack - model.defense) 0
-                        expGain = if model.attack >= monster.defense then monster.expYield else 0
+                        win = model.attack >= monster.defense
                         goldGain = if model.attack >= monster.defense then monster.goldYield else 0
+                        expGainer = if win then updateExpGain monster.expYield else \m -> m 
                     in
                     { model
                         | hitPoints = max (model.hitPoints - damage) 0
-                        , experience = model.experience + expGain
                         , gold = model.gold + goldGain
                         , encounteredMonster = Nothing
                     }
+                        |> expGainer
                 
                 Nothing ->
                     model
 
     in
-    ( newModel, getNextExploreNode )
+    ( newModel, getNextExploreNode model.currentMap )
 
+updateExpGain : Int -> Model -> Model
+updateExpGain gained model =
+    let
+        expForNextLevel =
+            model.level * model.level * 10
+        
+        totalExperience =
+            model.totalExperience + gained
+        
+        gainedLevel = totalExperience >= expForNextLevel
+        levelGain =
+            if gainedLevel then
+                1
+            else
+                0
+        
+        maxHitPointGain = if gainedLevel then 1 else 0
+        maxMagicPointGain = if gainedLevel then 1 else 0
+    in
+    { model
+        | level = model.level + levelGain
+        , totalExperience = totalExperience
+        , experience = model.experience + gained
+        , maxHitPoints = model.maxHitPoints + maxHitPointGain
+        , maxMagicPoints = model.maxMagicPoints + maxMagicPointGain
+    }
+    
 updateFlee : Model -> ( Model, Cmd Msg )
 updateFlee model =
     let
@@ -625,6 +713,7 @@ updateFlee model =
                         , encounteredMonster = Nothing
                         , mode = NotExploring
                         , activeSkills = Set.empty
+                        , currentMap = Nothing
                     }
                 
                 Nothing ->
@@ -830,7 +919,7 @@ updateGetTreasure : Bool -> Treasure -> Model -> ( Model, Cmd Msg )
 updateGetTreasure genNext treasure model =
     let
         nextCmd =
-            if genNext then getNextExploreNode else Cmd.none
+            if genNext then getNextExploreNode model.currentMap else Cmd.none
         
         newModel =
             case treasure of
@@ -881,6 +970,7 @@ updateLeave model =
             { model
                 | mode = NotExploring
                 , activeSkills = Set.empty
+                , currentMap = Nothing
             }
     in
     ( newModel, Cmd.none )
@@ -892,21 +982,31 @@ updateContinue model =
             model
         
     in
-    ( newModel, getNextExploreNode )
+    ( newModel, getNextExploreNode model.currentMap )
 
 updateGetExploreNode : ExploreNode -> Model -> ( Model, Cmd Msg )
 updateGetExploreNode exploreNode model =
     let
+        maxDepth =
+            model.currentMap
+                |> Maybe.map .depth
+                |> Maybe.withDefault 0
+        
         nextExploreNode =
-            if model.depth >= 9 then GoalNode else exploreNode
+            if model.depth >= maxDepth then GoalNode else exploreNode
+        
+        monsterGenerator =
+            model.currentMap
+                |> Maybe.map .monsterGenerator
+                |> Maybe.withDefault ( Random.constant missingno )
         
         newCmd =
             case nextExploreNode of
                 MonsterNode ->
-                    Random.generate GetMonster randomEncounterTable
+                    Random.generate GetMonster monsterGenerator
                 
                 GoalNode ->
-                    Random.generate GetTreasure goalTreasure
+                    Random.generate GetTreasure (getTreasureGenerator GoalTreasureQuality model)
                 
                 _ ->
                     Cmd.none
@@ -961,8 +1061,14 @@ updateGetExploreNode exploreNode model =
     in
     ( newModel2, newCmd )
 
-getNextExploreNode : Cmd Msg
-getNextExploreNode =
+getNextExploreNode : Maybe Map -> Cmd Msg
+getNextExploreNode m =
+    let
+        exploreNodeGenerator =
+            m
+                |> Maybe.map .exploreNodeGenerator
+                |> Maybe.withDefault ( Random.constant GoalNode )  
+    in    
     Random.generate GetExploreNode exploreNodeGenerator
 
 -- SUBSCRIPTIONS
