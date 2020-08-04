@@ -138,7 +138,36 @@ mapGenerator level =
                 otherExploreNodesDistributionGenerator
         
         monsterGeneratorGenerator genLv =
+            let
+                encounterRate gLv monster =
+                    let
+                        suitability = 1 / (toFloat (abs (monster.level - gLv)) + 1)
+                        range = 1 / (abs (toFloat monster.maxLevel - toFloat monster.level) + 1)
+                    in
+                    suitability * range
+                
+                minViableEncounterRate = 1/100
+                
+                monsterDistributionList =
+                    allMonsters
+                        |> List.filter (\m -> genLv <= m.maxLevel)
+                        |> List.map (\m -> ( encounterRate genLv m, m ))
+                        |> List.filter (\(r, m) -> (r >= minViableEncounterRate))
+                
+                uncons xls =
+                    case xls of
+                        x :: xs ->
+                            Just (x, xs)
 
+                        [] ->
+                            Nothing
+            in
+            case uncons monsterDistributionList of
+                Just ( head, tail ) ->
+                    Random.weighted head tail
+                
+                Nothing ->
+                    Random.constant missingno
     in
     Random.map Map nameGenerator
         |> Random.Extra.andMap levelGenerator
@@ -185,7 +214,7 @@ type TreasureQuality
 
 type alias Monster =
     { level : Int
-    , encounterRate : Float
+    , maxLevel : Int
     , name : String
     , attack : Int
     , defense : Int
@@ -196,8 +225,8 @@ type alias Monster =
 
 missingno : Monster
 missingno =
-    { level = 0
-    , encounterRate = 0
+    { level = 99
+    , maxLevel = 0
     , name = "Missingno"
     , attack = 0
     , defense = 0
@@ -209,7 +238,7 @@ missingno =
 squirrel : Monster
 squirrel =
     { level = 1
-    , encounterRate = 1
+    , maxLevel = 3
     , name = "Squirrel"
     , attack = 1
     , defense = 1
@@ -221,7 +250,7 @@ squirrel =
 bossSquirrel : Monster
 bossSquirrel =
     { level = 2
-    , encounterRate = 0
+    , maxLevel = 2
     , name = "Boss Squirrel"
     , attack = 8
     , defense = 2
@@ -233,7 +262,7 @@ bossSquirrel =
 owl : Monster
 owl =
     { level = 1
-    , encounterRate = 0.5
+    , maxLevel = 3
     , name = "Owl"
     , attack = 1
     , defense = 2
@@ -245,7 +274,7 @@ owl =
 wolf : Monster
 wolf =
     { level = 2
-    , encounterRate = 1
+    , maxLevel = 6
     , name = "Wolf"
     , attack = 3
     , defense = 3
@@ -257,7 +286,7 @@ wolf =
 bear : Monster
 bear =
     { level = 3
-    , encounterRate = 0.5
+    , maxLevel = 9
     , name = "Bear"
     , attack = 7
     , defense = 5
