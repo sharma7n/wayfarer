@@ -1,1 +1,59 @@
 # wayfarer
+
+- The Loop
+- Sears Tower
+- The CTA
+- Daley Plaza
+- Block 37
+- DePaul (Loop)
+- South Loop Club
+- Chinatown
+- Aquarium
+- Planetarium
+- Field Museum
+- Zoo
+- MOMA
+- Art Institute
+- Lavazza
+- French Market
+- The Metra
+- Greektown
+- Google
+- Fulton Market
+- Pilsen
+- River North
+- Streeterville
+- Gold Coast
+- Wicker Park
+- Lakeview
+- Lincoln Park
+- John Hancock
+- Eataly
+- AMC 600 Michigan
+- AMC River East
+- Gene Siskel Theater
+- Chicago Theater
+- Broadway
+- Music Box
+- Do-Rite Donuts
+- Stans Donuts
+- Firecakes
+- Beavers/Dappers Donuts
+- CSO
+- The Bean
+- Milennium Park
+- Grant Park
+- The Taste of Chicago
+- ACEN
+- C2E2
+- CAKE
+- Wildberry Pancakes
+- Eggys Diner
+- Emilios Sol y Nieve
+- Ramen Misoya
+- Izakaya Mita
+- Bubbleland
+- The Annoyance
+- River Walk
+- Nordstrom Mall
+- Chicago Public Library

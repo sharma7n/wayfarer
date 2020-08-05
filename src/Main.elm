@@ -70,6 +70,7 @@ type Msg
     | Continue
     | GetExploreNode ExploreNode
     | GetMap Map
+    | DoWork
 
 type Mode
     = Exploring ExploreNode
@@ -596,6 +597,7 @@ viewNotExploring model =
         , Html.li []
             ( List.map (\map -> Html.button [ Html.Events.onClick <| Explore map ] [ Html.text <| "Explore: " ++ map.name ]) model.maps )
         , Html.li [] [ Html.button [ Html.Events.onClick (BossFight bossSquirrel) ] [ Html.text <| "Fight Boss Squirrel" ] ]
+        , Html.li [] [ Html.button [ Html.Events.onClick DoWork ] [ Html.text <| "Do Work" ] ]
         , Html.li [] [ Html.button [ Html.Events.onClick BuyPotion ] [ Html.text <| "Buy Potion" ] ]
         , Html.li [] [ Html.button [ Html.Events.onClick BuyCopperKnife ] [ Html.text <| "Buy Copper Knife" ] ]
         
@@ -719,6 +721,9 @@ update msg model =
         
         ( GetMap map, _ ) ->
             updateGetMap map model
+        
+        ( DoWork, NotExploring ) ->
+            updateDoWork model
         
         _ ->
             ( model, Cmd.none )
@@ -1212,6 +1217,20 @@ updateGetMap map model =
         newModel =
             { model
                 | maps = map :: model.maps
+            }
+    in
+    ( newModel, Cmd.none )
+
+updateDoWork : Model -> ( Model, Cmd Msg )
+updateDoWork model =
+    let
+        canDoWork = model.time >= 1
+        goldDelta = if canDoWork then 1 else 0
+        timeDelta = if canDoWork then 1 else 0
+        newModel =
+            { model
+                | gold = model.gold + goldDelta
+                , time = model.time - timeDelta
             }
     in
     ( newModel, Cmd.none )
