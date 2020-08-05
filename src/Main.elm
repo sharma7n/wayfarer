@@ -69,6 +69,7 @@ type Msg
     | Leave
     | Continue
     | GetExploreNode ExploreNode
+    | GetMap Map
 
 type Mode
     = Exploring ExploreNode
@@ -113,7 +114,7 @@ mapGenerator level =
             let
                 distribution lower upper node =
                     Random.int lower upper
-                        |> Random.andThen (\freq -> ( freq, node ))
+                        |> Random.andThen (\freq -> Random.constant ( toFloat freq, node ))
                 
                 savePointNodeDistributionGenerator =
                     distribution 1 (1 + (genLv // 4)) SavePointNode
@@ -122,7 +123,7 @@ mapGenerator level =
                     ( distribution 4 (4 + (genLv // 2)) TerrainNode ) |> Random.andThen (\terrainNodeDistribution ->
                     ( distribution 4 (4 + genLv) TrapNode ) |> Random.andThen (\trapNodeDistribution ->
                     ( distribution 6 (6 + genLv) MonsterNode ) |> Random.andThen (\monsterNodeDistribution ->
-                    ( distribution 4 (4 + (genLv // 2) (TreasureNode MinorTreasureQuality)) ) |> Random.andThen (\minorTreasureNodeDistribution ->
+                    ( distribution 4 (4 + (genLv // 2)) (TreasureNode MinorTreasureQuality) ) |> Random.andThen (\minorTreasureNodeDistribution ->
                     ( distribution 2 (2 + (genLv // 4)) (TreasureNode MajorTreasureQuality) ) |> Random.andThen (\majorTreasureNodeDistribution ->
                         Random.constant <|
                             [ terrainNodeDistribution
@@ -141,16 +142,15 @@ mapGenerator level =
             let
                 encounterRate gLv monster =
                     let
-                        suitability = 1 / (toFloat (abs (monster.level - gLv)) + 1)
-                        range = 1 / (abs (toFloat monster.maxLevel - toFloat monster.level) + 1)
+                        suitability = 1 / (toFloat ((monster.level - gLv) * (monster.level - gLv)) + 1)
+                        encounterRateModifier = frequencyToFloat monster.encounterRate
                     in
-                    suitability * range
+                    suitability * encounterRateModifier
                 
-                minViableEncounterRate = 1/100
+                minViableEncounterRate = 1 / 256
                 
                 monsterDistributionList =
                     allMonsters
-                        |> List.filter (\m -> genLv <= m.maxLevel)
                         |> List.map (\m -> ( encounterRate genLv m, m ))
                         |> List.filter (\(r, m) -> (r >= minViableEncounterRate))
                 
@@ -161,15 +161,53 @@ mapGenerator level =
 
                         [] ->
                             Nothing
-            in
-            case uncons monsterDistributionList of
-                Just ( head, tail ) ->
-                    Random.weighted head tail
                 
-                Nothing ->
-                    Random.constant missingno
+                monsterGenerator =
+                    case uncons monsterDistributionList of
+                        Just ( head, tail ) ->
+                            Random.weighted head tail
+                        
+                        Nothing ->
+                            Random.constant missingno
+            in
+            Random.constant monsterGenerator
+
+        minorTreasureGeneratorGenerator genLv =
+            let
+                minorTreasureGenerator =
+                    Random.weighted
+                        ( 1, TrapTreasure 1 )
+                        [ ( 3, EmptyTreasure )
+                        , ( 1, GoldTreasure 1 )
+                        , ( 1, ItemTreasure "Potion" )
+                        ]
+            in
+            Random.constant minorTreasureGenerator
+        
+        majorTreasureGeneratorGenerator genLv =
+            let
+                majorTreasureGenerator =
+                    Random.weighted
+                        ( 1, TrapTreasure 1 )
+                        [ ( 3, GoldTreasure 1 )
+                        , ( 3, ItemTreasure "Potion" )
+                        , ( 1, WeaponTreasure "Copper Knife" )
+                        , ( 1, ArmorTreasure "Leather Armor" )
+                        ]
+            in
+            Random.constant majorTreasureGenerator
+        
+        goalTreasureGeneratorGenerator genLv =
+            let
+                goalTreasureGenerator =
+                    Random.weighted
+                        ( 1, WeaponTreasure "Copper Knife" )
+                        [ ( 1, ArmorTreasure "Leather Armor" )
+                        ]
+            in
+            Random.constant goalTreasureGenerator
     in
-    Random.map Map nameGenerator
+    Random.map Map ( byLevel nameGenerator )
         |> Random.Extra.andMap levelGenerator
         |> Random.Extra.andMap ( byLevel depthGenerator )
         |> Random.Extra.andMap ( byLevel exploreNodeGeneratorGenerator )
@@ -214,7 +252,7 @@ type TreasureQuality
 
 type alias Monster =
     { level : Int
-    , maxLevel : Int
+    , encounterRate : Frequency
     , name : String
     , attack : Int
     , defense : Int
@@ -223,10 +261,31 @@ type alias Monster =
     , goldYield : Int
     }
 
+type Frequency
+    = Common
+    | Uncommon
+    | Rare
+    | Legendary
+
+frequencyToFloat : Frequency -> Float
+frequencyToFloat freq =
+    case freq of
+        Common ->
+            1
+        
+        Uncommon ->
+            1 / 4
+
+        Rare ->
+            1 / 16
+        
+        Legendary ->
+            1 / 64
+
 missingno : Monster
 missingno =
     { level = 99
-    , maxLevel = 0
+    , encounterRate = Common
     , name = "Missingno"
     , attack = 0
     , defense = 0
@@ -238,7 +297,7 @@ missingno =
 squirrel : Monster
 squirrel =
     { level = 1
-    , maxLevel = 3
+    , encounterRate = Common
     , name = "Squirrel"
     , attack = 1
     , defense = 1
@@ -250,7 +309,7 @@ squirrel =
 bossSquirrel : Monster
 bossSquirrel =
     { level = 2
-    , maxLevel = 2
+    , encounterRate = Legendary
     , name = "Boss Squirrel"
     , attack = 8
     , defense = 2
@@ -262,7 +321,7 @@ bossSquirrel =
 owl : Monster
 owl =
     { level = 1
-    , maxLevel = 3
+    , encounterRate = Common
     , name = "Owl"
     , attack = 1
     , defense = 2
@@ -274,7 +333,7 @@ owl =
 wolf : Monster
 wolf =
     { level = 2
-    , maxLevel = 6
+    , encounterRate = Common
     , name = "Wolf"
     , attack = 3
     , defense = 3
@@ -286,7 +345,7 @@ wolf =
 bear : Monster
 bear =
     { level = 3
-    , maxLevel = 9
+    , encounterRate = Uncommon
     , name = "Bear"
     , attack = 7
     , defense = 5
@@ -321,7 +380,7 @@ main =
 
 -- INIT
 
-init : flags -> ( Model, Cmd msg )
+init : flags -> ( Model, Cmd Msg )
 init _ =
     let
         initModel =
@@ -354,52 +413,15 @@ init _ =
             , messages = []
             , activeSkills = Set.empty
             , depth = 0
-            , maps =
-                [ { name = "Forest Lv. 1"
-                  , level = 1
-                  , depth = 9
-                  , exploreNodeGenerator =
-                    Random.weighted
-                        ( 1, TerrainNode )
-                        [ ( 1, TrapNode )
-                        , ( 2, MonsterNode )
-                        , ( 3, TreasureNode MinorTreasureQuality )
-                        , ( 1, TreasureNode MajorTreasureQuality )
-                        , ( 2, SavePointNode )
-                        ]
-                  , monsterGenerator =
-                    Random.weighted
-                        ( 10, squirrel )
-                        [ ( 6, owl )
-                        , ( 3, wolf )
-                        , ( 1, bear )
-                        ]
-                  , minorTreasureGenerator =
-                    Random.weighted
-                        ( 3, EmptyTreasure )
-                        [ (1, TrapTreasure 1 )
-                        , (1, GoldTreasure 1 )
-                        , (1, ItemTreasure "Potion" )
-                        ]
-                  , majorTreasureGenerator =
-                    Random.weighted
-                        ( 1, TrapTreasure 1 )
-                        [ ( 3, GoldTreasure 1 )
-                        , ( 3, ItemTreasure "Potion" )
-                        , ( 1, WeaponTreasure "Copper Knife" )
-                        , ( 1, ArmorTreasure "Leather Armor" )
-                        ]
-                  , goalTreasureGenerator =
-                    Random.weighted
-                        ( 1, WeaponTreasure "Copper Knife" )
-                        [ ( 1, ArmorTreasure "Leather Armor" )
-                        ]
-                  }
-                ]
+            , maps = []
             , currentMap = Nothing
             }
     in   
-    ( initModel, Cmd.none )
+    ( initModel, generateMap 0 )
+
+generateMap : Int -> Cmd Msg
+generateMap level =
+    Random.generate GetMap ( mapGenerator level )
 
 -- VIEW
 
@@ -694,6 +716,9 @@ update msg model =
         
         ( GetExploreNode exploreNode, _ ) ->
             updateGetExploreNode exploreNode model
+        
+        ( GetMap map, _ ) ->
+            updateGetMap map model
         
         _ ->
             ( model, Cmd.none )
@@ -1113,7 +1138,10 @@ updateGetExploreNode exploreNode model =
                     Random.generate GetMonster monsterGenerator
                 
                 GoalNode ->
-                    Random.generate GetTreasure (getTreasureGenerator GoalTreasureQuality model)
+                    Cmd.batch
+                        [ Random.generate GetTreasure ( getTreasureGenerator GoalTreasureQuality model )
+                        , generateMap model.level
+                        ]
                 
                 _ ->
                     Cmd.none
@@ -1177,6 +1205,16 @@ getNextExploreNode m =
                 |> Maybe.withDefault ( Random.constant GoalNode )  
     in    
     Random.generate GetExploreNode exploreNodeGenerator
+
+updateGetMap : Map -> Model -> ( Model, Cmd Msg )
+updateGetMap map model =
+    let
+        newModel =
+            { model
+                | maps = map :: model.maps
+            }
+    in
+    ( newModel, Cmd.none )
 
 -- SUBSCRIPTIONS
 
