@@ -3,8 +3,9 @@
 ## Regions / Places
 
 - The Loop
-- Sears Tower
-- The CTA
+- Sears Tower (Dark Tower)
+- The CTA (Tunnels)
+- The Pedway (The Undercity)
 - Daley Plaza
 - Block 37
 - DePaul (Loop)
@@ -46,7 +47,7 @@
 - Milennium Park
 - Grant Park
 - The Taste of Chicago
-- ACEN
+- ACEN (Anime Hell)
 - C2E2
 - CAKE
 - Wildberry Pancakes
@@ -56,9 +57,9 @@
 - Izakaya Mita
 - Bubbleland
 - The Annoyance
-- River Walk
-- Nordstrom Mall
-- Chicago Public Library
+- River Walk (Kappa River)
+- Nordstrom Mall (Abandoned Mall)
+- Chicago Public Library (Frozen Library)
 
 ## Activities
 
