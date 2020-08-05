@@ -39,6 +39,7 @@ type alias Model =
     , depth : Int
     , maps : List Map
     , currentMap : Maybe Map
+    , poison : Maybe Int
     }
 
 type Msg
@@ -48,8 +49,8 @@ type Msg
     | Fight
     | BossFight Monster
     | Flee
-    | BuyPotion
-    | UsePotion
+    | BuyDonut
+    | UseDonut
     | BuyCopperKnife
     | EquipCopperKnife
     | UnEquipCopperKnife
@@ -180,7 +181,7 @@ mapGenerator level =
                         ( 1, TrapTreasure 1 )
                         [ ( 3, EmptyTreasure )
                         , ( 1, GoldTreasure 1 )
-                        , ( 1, ItemTreasure "Potion" )
+                        , ( 1, ItemTreasure "Donut" )
                         ]
             in
             Random.constant minorTreasureGenerator
@@ -191,7 +192,7 @@ mapGenerator level =
                     Random.weighted
                         ( 1, TrapTreasure 1 )
                         [ ( 3, GoldTreasure 1 )
-                        , ( 3, ItemTreasure "Potion" )
+                        , ( 3, ItemTreasure "Donut" )
                         , ( 1, WeaponTreasure "Copper Knife" )
                         , ( 1, ArmorTreasure "Leather Armor" )
                         ]
@@ -260,6 +261,7 @@ type alias Monster =
     , agility : Int
     , expYield : Int
     , goldYield : Int
+    , poison : Maybe Int
     }
 
 type Frequency
@@ -293,42 +295,59 @@ missingno =
     , agility = 0
     , expYield = 0
     , goldYield = 0
+    , poison = Nothing
     }
 
-squirrel : Monster
-squirrel =
+pigeon : Monster
+pigeon =
     { level = 1
     , encounterRate = Common
-    , name = "Squirrel"
+    , name = "Pigeon"
     , attack = 1
     , defense = 1
     , agility = 2
     , expYield = 1
     , goldYield = 1
+    , poison = Nothing
     }
 
-bossSquirrel : Monster
-bossSquirrel =
+bossPigeon : Monster
+bossPigeon =
     { level = 2
     , encounterRate = Legendary
-    , name = "Boss Squirrel"
+    , name = "Boss Pigeon"
     , attack = 8
     , defense = 2
     , agility = 1
     , expYield = 10
     , goldYield = 10
+    , poison = Nothing
     }
 
 owl : Monster
 owl =
     { level = 1
-    , encounterRate = Common
+    , encounterRate = Uncommon
     , name = "Owl"
     , attack = 1
     , defense = 2
     , agility = 1
     , expYield = 1
     , goldYield = 2
+    , poison = Nothing
+    }
+
+snake : Monster
+snake =
+    { level = 2
+    , encounterRate = Uncommon
+    , name = "Snake"
+    , attack = 1
+    , defense = 1
+    , agility = 1
+    , expYield = 1
+    , goldYield = 2
+    , poison = Just 1
     }
 
 wolf : Monster
@@ -341,6 +360,7 @@ wolf =
     , agility = 1
     , expYield = 3
     , goldYield = 3
+    , poison = Nothing
     }
 
 bear : Monster
@@ -353,11 +373,13 @@ bear =
     , agility = 1
     , expYield = 6
     , goldYield = 6
+    , poison = Nothing
     }
 
 allMonsters =
-    [ squirrel
+    [ pigeon
     , owl
+    , snake
     , wolf
     , bear
     ]
@@ -416,6 +438,7 @@ init _ =
             , depth = 0
             , maps = []
             , currentMap = Nothing
+            , poison = Nothing
             }
     in   
     ( initModel, generateMap 0 )
@@ -435,6 +458,14 @@ view model =
         , Html.li [] [ Html.text <| "Level: " ++ String.fromInt model.level ]
         , Html.li [] [ Html.text <| "EXP: " ++ String.fromInt model.experience ++ " / " ++ String.fromInt model.totalExperience ++ " / " ++ String.fromInt (model.level * model.level * 10) ]
         , Html.li [] [ Html.text <| "HP: " ++ String.fromInt model.hitPoints ++ " / " ++ String.fromInt model.maxHitPoints ]
+        , Html.li []
+            ( case model.poison of
+                Just poisonStacks ->
+                    [ Html.text <| "Poison: " ++ String.fromInt poisonStacks ]
+
+                Nothing ->
+                    []
+            )
         , Html.li [] [ Html.text <| "MP: " ++ String.fromInt model.magicPoints ++ " / " ++ String.fromInt model.maxMagicPoints ]
         , Html.li [] [ Html.text <| "ATK: " ++ String.fromInt model.attack ]
         , Html.li [] [ Html.text <| "DEF: " ++ String.fromInt model.defense ]
@@ -444,7 +475,7 @@ view model =
             [ Html.li [] [ Html.text <| "Inventory: " ]
             , Html.ul 
                 []
-                ( List.map (\item -> Html.button [ Html.Events.onClick UsePotion ] [ Html.text item ]) model.inventory )
+                ( List.map (\item -> Html.button [ Html.Events.onClick UseDonut ] [ Html.text item ]) model.inventory )
             ]
         , Html.li [] 
             [ Html.li [] [ Html.text <| "Weapons: " ]
@@ -596,9 +627,9 @@ viewNotExploring model =
         [ Html.li [] [ Html.button [ Html.Events.onClick Inn ] [ Html.text <| "Inn" ] ]
         , Html.li []
             ( List.map (\map -> Html.button [ Html.Events.onClick <| Explore map ] [ Html.text <| "Explore: " ++ map.name ]) model.maps )
-        , Html.li [] [ Html.button [ Html.Events.onClick (BossFight bossSquirrel) ] [ Html.text <| "Fight Boss Squirrel" ] ]
+        , Html.li [] [ Html.button [ Html.Events.onClick (BossFight bossPigeon) ] [ Html.text <| "Fight Boss Pigeon" ] ]
         , Html.li [] [ Html.button [ Html.Events.onClick DoWork ] [ Html.text <| "Do Work" ] ]
-        , Html.li [] [ Html.button [ Html.Events.onClick BuyPotion ] [ Html.text <| "Buy Potion" ] ]
+        , Html.li [] [ Html.button [ Html.Events.onClick BuyDonut ] [ Html.text <| "Buy Donut" ] ]
         , Html.li [] [ Html.button [ Html.Events.onClick BuyCopperKnife ] [ Html.text <| "Buy Copper Knife" ] ]
         
         , Html.li [] [ Html.button [ Html.Events.onClick BuyLeatherArmor ] [ Html.text <| "Buy Leather Armor" ] ]
@@ -650,8 +681,8 @@ update msg model =
         ( Flee, Exploring MonsterNode ) ->
             updateFlee model
         
-        ( BuyPotion, NotExploring ) ->
-            updateBuyPotion model
+        ( BuyDonut, NotExploring ) ->
+            updateBuyDonut model
         
         ( BuyCopperKnife, NotExploring ) ->
             updateBuyCopperKnife model
@@ -662,8 +693,8 @@ update msg model =
         ( UnEquipCopperKnife, _ ) ->
             updateUnEquipCopperKnife model
         
-        ( UsePotion, _ ) ->
-            updateUsePotion model
+        ( UseDonut, _ ) ->
+            updateUseDonut model
         
         ( SavePoint, Exploring SavePointNode ) ->
             updateSavePoint model
@@ -773,10 +804,22 @@ updateBossFight monster model =
         win = model.attack >= monster.defense
         goldGain = if win then monster.goldYield else 0
         expGainer = if win then updateExpGain monster.expYield else \m -> m 
+        newPoison =
+            case (monster.poison, model.poison) of
+                ( Nothing, _ ) ->
+                    model.poison
+                
+                ( Just ps, Nothing ) ->
+                    Just ps
+                
+                ( Just p, Just q) ->
+                    Just <| p + q
+        
         newModel =
             { model
                 | hitPoints = max (model.hitPoints - damage) 0
                 , gold = model.gold + goldGain
+                , poison = newPoison
             }
                 |> expGainer
     in
@@ -792,12 +835,23 @@ updateFight model =
                         damage = max (monster.attack - model.defense) 0
                         win = model.attack >= monster.defense
                         goldGain = if model.attack >= monster.defense then monster.goldYield else 0
-                        expGainer = if win then updateExpGain monster.expYield else \m -> m 
+                        expGainer = if win then updateExpGain monster.expYield else \m -> m
+                        newPoison =
+                            case (monster.poison, model.poison) of
+                                ( Nothing, _ ) ->
+                                    model.poison
+                                
+                                ( Just ps, Nothing ) ->
+                                    Just ps
+                                
+                                ( Just p, Just q) ->
+                                    Just <| p + q
                     in
                     { model
                         | hitPoints = max (model.hitPoints - damage) 0
                         , gold = model.gold + goldGain
                         , encounteredMonster = Nothing
+                        , poison = newPoison
                     }
                         |> expGainer
                 
@@ -858,11 +912,11 @@ updateFlee model =
     in
     ( newModel, Cmd.none )
 
-updateBuyPotion : Model -> ( Model, Cmd Msg )
-updateBuyPotion model =
+updateBuyDonut : Model -> ( Model, Cmd Msg )
+updateBuyDonut model =
     let
         paid = if model.gold >= 2 then 2 else 0
-        newItems = if model.gold >= 2 then [ "Potion" ] else []
+        newItems = if model.gold >= 2 then [ "Donut" ] else []
         newModel =
             { model
                 | inventory = List.append newItems model.inventory
@@ -884,8 +938,8 @@ updateBuyCopperKnife model =
     in
     ( newModel, Cmd.none )
 
-updateUsePotion : Model -> ( Model, Cmd Msg )
-updateUsePotion model =
+updateUseDonut : Model -> ( Model, Cmd Msg )
+updateUseDonut model =
     let
         newModel =
             { model
@@ -1124,6 +1178,7 @@ updateContinue model =
 updateGetExploreNode : ExploreNode -> Model -> ( Model, Cmd Msg )
 updateGetExploreNode exploreNode model =
     let
+        hpLossFromPoison = Maybe.withDefault 0 model.poison
         maxDepth =
             model.currentMap
                 |> Maybe.map .depth
@@ -1196,7 +1251,8 @@ updateGetExploreNode exploreNode model =
             { newModel
                 | mode = Exploring nextExploreNode
                 , messages = List.append nextMessages newModel.messages
-                , depth = model.depth + 1
+                , depth = newModel.depth + 1
+                , hitPoints = max (newModel.hitPoints - hpLossFromPoison) 0
             }
     in
     ( newModel2, newCmd )
