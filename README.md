@@ -1,5 +1,7 @@
 # wayfarer
 
+## Regions / Places
+
 - The Loop
 - Sears Tower
 - The CTA
@@ -57,3 +59,17 @@
 - River Walk
 - Nordstrom Mall
 - Chicago Public Library
+
+## Activities
+
+- Exploring the Psyche Realm / Fighting the Psychopomps
+- Family
+- Socializing / Partying
+- Dating
+- Chores / Self care (cooking, exercising, cleaning)
+- Fashion
+- Creative hobbies
+- Consuming media
+- Education
+- Culture
+- Career / Working
