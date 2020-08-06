@@ -40,6 +40,7 @@ type alias Model =
     , maps : List Map
     , currentMap : Maybe Map
     , poison : Maybe Int
+    , residence : String
     }
 
 type Msg
@@ -123,9 +124,9 @@ mapGenerator level =
                 
                 otherExploreNodesDistributionGenerator =
                     ( distribution 4 (4 + (genLv // 2)) TerrainNode ) |> Random.andThen (\terrainNodeDistribution ->
-                    ( distribution 4 (4 + genLv) TrapNode ) |> Random.andThen (\trapNodeDistribution ->
+                    ( distribution 2 (2 + genLv) TrapNode ) |> Random.andThen (\trapNodeDistribution ->
                     ( distribution 6 (6 + genLv) MonsterNode ) |> Random.andThen (\monsterNodeDistribution ->
-                    ( distribution 4 (4 + (genLv // 2)) (TreasureNode MinorTreasureQuality) ) |> Random.andThen (\minorTreasureNodeDistribution ->
+                    ( distribution 6 (6 + (genLv // 2)) (TreasureNode MinorTreasureQuality) ) |> Random.andThen (\minorTreasureNodeDistribution ->
                     ( distribution 2 (2 + (genLv // 4)) (TreasureNode MajorTreasureQuality) ) |> Random.andThen (\majorTreasureNodeDistribution ->
                         Random.constant <|
                             [ terrainNodeDistribution
@@ -439,6 +440,7 @@ init _ =
             , maps = []
             , currentMap = Nothing
             , poison = Nothing
+            , residence = "Hostel"
             }
     in   
     ( initModel, generateMap 0 )
@@ -453,19 +455,19 @@ view : Model -> Html.Html Msg
 view model =
     Html.ul
         []
-        [ Html.li [] [ Html.text <| "Day: " ++ String.fromInt model.day ]
+        [ Html.li [] [ Html.text <| "Residence: " ++ model.residence ]
+        , Html.li [] [ Html.text <| "Day: " ++ String.fromInt model.day ]
         , Html.li [] [ Html.text <| "Time: " ++ String.fromInt model.time ++ " / " ++ String.fromInt model.maxTime ]
         , Html.li [] [ Html.text <| "Level: " ++ String.fromInt model.level ]
         , Html.li [] [ Html.text <| "EXP: " ++ String.fromInt model.experience ++ " / " ++ String.fromInt model.totalExperience ++ " / " ++ String.fromInt (model.level * model.level * 10) ]
         , Html.li [] [ Html.text <| "HP: " ++ String.fromInt model.hitPoints ++ " / " ++ String.fromInt model.maxHitPoints ]
-        , Html.li []
-            ( case model.poison of
-                Just poisonStacks ->
-                    [ Html.text <| "Poison: " ++ String.fromInt poisonStacks ]
+        , ( case model.poison of
+            Just poisonStacks ->
+                Html.li [] [ Html.text <| "Poison: " ++ String.fromInt poisonStacks ]
 
-                Nothing ->
-                    []
-            )
+            Nothing ->
+                Html.node "blank" [] []
+          )
         , Html.li [] [ Html.text <| "MP: " ++ String.fromInt model.magicPoints ++ " / " ++ String.fromInt model.maxMagicPoints ]
         , Html.li [] [ Html.text <| "ATK: " ++ String.fromInt model.attack ]
         , Html.li [] [ Html.text <| "DEF: " ++ String.fromInt model.defense ]
@@ -512,12 +514,6 @@ view model =
             , Html.ul 
                 []
                 ( List.map (\skill -> Html.li [] [ Html.text skill ]) (Set.toList model.activeSkills) )
-            ]
-        , Html.li [] 
-            [ Html.li [] [ Html.text <| "Encountered Monster: " ]
-            , Html.ul 
-                []
-                [ Html.text <| Maybe.withDefault "Nothing" (Maybe.map .name model.encounteredMonster) ]
             ]
         , case model.mode of
             Exploring exploreNode ->
@@ -577,7 +573,25 @@ viewExploring exploreNode model =
                     ]
                 
                 MonsterNode ->
-                    [ viewOption Fight "Fight"
+                    [ case model.encounteredMonster of
+                        Just monster ->
+                            Html.ul []
+                                [ Html.li [] [ Html.text <| "Name: " ++ monster.name ]
+                                , Html.li [] [ Html.text <| "Attack: " ++ String.fromInt monster.attack ]
+                                , Html.li [] [ Html.text <| "Defense: " ++ String.fromInt monster.defense ]
+                                , case monster.poison of
+                                    Just psn ->
+                                        Html.li [] [ Html.text <| "Poison: " ++ String.fromInt psn ]
+                                    Nothing ->
+                                        Html.node "blank" [] []
+                                
+                                , Html.li [] [ Html.text <| "EXP Yield: " ++ String.fromInt monster.expYield ]
+                                , Html.li [] [ Html.text <| "Gold Yield: " ++ String.fromInt monster.goldYield ]
+                                ]
+                        Nothing ->
+                            Html.node "blank" [] []
+
+                    , viewOption Fight "Fight"
                     , viewOption Flee "Flee"
                     ]
                 
