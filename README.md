@@ -1,5 +1,17 @@
 # wayfarer
 
+## Todo
+
+- Improve skills
+- Improve leveling system
+- Shop interface
+- More items
+- Streamline "objects"
+- More map events
+- Map dep on environ
+- Improve traps / treasures (more meaningful events)
+- More battle mechanics
+
 ## Regions / Places
 
 - The Loop
