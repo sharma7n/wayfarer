@@ -25,8 +25,8 @@ type alias Model =
     , agility : Int
     , gold : Int
     , inventory : List Item
-    , weapons : List String
-    , equippedWeapon : Maybe String
+    , weapons : List Weapon
+    , equippedWeapon : Maybe Weapon
     , armors : List String
     , equippedArmor : Maybe String
     , skills : Set.Set String
@@ -52,9 +52,9 @@ type Msg
     | Flee
     | BuyItem Item
     | UseItem Item
-    | BuyCopperKnife
-    | EquipCopperKnife
-    | UnEquipCopperKnife
+    | BuyWeapon Weapon
+    | EquipWeapon Weapon
+    | UnEquipWeapon Weapon
     | SavePoint
     | IncreaseMaxHitPoints
     | IncreaseAttack
@@ -194,7 +194,7 @@ mapGenerator level =
                         ( 1, TrapTreasure 1 )
                         [ ( 3, GoldTreasure 1 )
                         , ( 3, ItemTreasure { name = "Buttermilk Old-Fasioned Donut", price = 6, frequency = Common, healAmount = 1 } )
-                        , ( 1, WeaponTreasure "Copper Knife" )
+                        , ( 1, WeaponTreasure { name = "Copper Knife", price = 10, frequency = Common, attackBonus = 1 } )
                         , ( 1, ArmorTreasure "Leather Armor" )
                         ]
             in
@@ -204,7 +204,7 @@ mapGenerator level =
             let
                 goalTreasureGenerator =
                     Random.weighted
-                        ( 1, WeaponTreasure "Copper Knife" )
+                        ( 1, WeaponTreasure { name = "Copper Knife", price = 10, frequency = Common, attackBonus = 1 } )
                         [ ( 1, ArmorTreasure "Leather Armor" )
                         ]
             in
@@ -394,6 +394,7 @@ type alias Item =
 
 type alias Weapon =
     { name : String
+    , price : Int
     , frequency : Frequency
     , attackBonus : Int
     }
@@ -414,11 +415,16 @@ allItems =
     [ { name = "Buttermilk Old-Fashioned Donut", price = 6, frequency = Common, healAmount = 1 }
     ]
 
+allWeapons : List Weapon
+allWeapons =
+    [ { name = "Copper Knife", price = 10, frequency = Common, attackBonus = 1 }
+    ]
+
 allObjects : List Object
 allObjects =
     (List.map ItemObject allItems)
-    ++ [ WeaponObject { name = "Copper Knife", frequency = Common, attackBonus = 1 }
-    , ArmorObject { name = "Leather Armor", frequency = Common, defenseBonus = 1 }
+    ++ (List.map WeaponObject allWeapons)
+    ++ [ ArmorObject { name = "Leather Armor", frequency = Common, defenseBonus = 1 }
     ]
 
 type Treasure
@@ -426,7 +432,7 @@ type Treasure
     | EmptyTreasure
     | GoldTreasure Int
     | ItemTreasure Item
-    | WeaponTreasure String
+    | WeaponTreasure Weapon
     | ArmorTreasure String
 
 main : Program () Model Msg
@@ -519,13 +525,13 @@ view model =
             [ Html.li [] [ Html.text <| "Weapons: " ]
             , Html.ul 
                 []
-                ( List.map (\weapon -> Html.button [ Html.Events.onClick EquipCopperKnife ] [ Html.text weapon ]) model.weapons )
+                ( List.map (\weapon -> Html.button [ Html.Events.onClick <| EquipWeapon weapon ] [ Html.text weapon.name ]) model.weapons )
             ]
         , Html.li [] 
             [ Html.li [] [ Html.text <| "Equipped Weapon: " ]
             , Html.ul 
                 []
-                [ Html.button (equippedWeaponActions model.equippedWeapon) [ Html.text <| Maybe.withDefault "Nothing" model.equippedWeapon ] ]
+                [ Html.button (equippedWeaponActions model.equippedWeapon) [ Html.text <| Maybe.withDefault "Nothing" (Maybe.map .name model.equippedWeapon) ] ]
             ]
         , Html.li [] 
             [ Html.li [] [ Html.text <| "Armor: " ]
@@ -682,9 +688,8 @@ viewNotExploring model =
         , Html.li [] [ Html.button [ Html.Events.onClick DoWork ] [ Html.text <| "Do Work" ] ]
         ]
         ++ (List.map (\item -> Html.li [] [ Html.button [ Html.Events.onClick <| BuyItem item ] [ Html.text <| "Buy: " ++ item.name ] ]) allItems)
-        ++ [ Html.li [] [ Html.button [ Html.Events.onClick BuyCopperKnife ] [ Html.text <| "Buy Copper Knife" ] ]
-        , Html.li [] [ Html.button [ Html.Events.onClick BuyLeatherArmor ] [ Html.text <| "Buy Leather Armor" ] ]
-        
+        ++ (List.map (\weapon -> Html.li [] [ Html.button [ Html.Events.onClick <| BuyWeapon weapon ] [ Html.text <| "Buy: " ++ weapon.name ] ]) allWeapons)
+        ++ [ Html.li [] [ Html.button [ Html.Events.onClick BuyLeatherArmor ] [ Html.text <| "Buy Leather Armor" ] ]
         , Html.li [] [ Html.button [ Html.Events.onClick IncreaseMaxHitPoints ] [ Html.text <| "Increase Max HP" ] ]
         , Html.li [] [ Html.button [ Html.Events.onClick IncreaseAttack ] [ Html.text <| "Increase ATK" ] ]
         , Html.li [] [ Html.button [ Html.Events.onClick IncreaseDefense ] [ Html.text <| "Increase DEF" ] ]
@@ -692,14 +697,14 @@ viewNotExploring model =
         ]
         )
 
-equippedWeaponActions : Maybe String -> List (Html.Attribute Msg)
+equippedWeaponActions : Maybe Weapon -> List (Html.Attribute Msg)
 equippedWeaponActions m =
     case m of
         Nothing -> 
             []
         
-        Just _ -> 
-            [ Html.Events.onClick UnEquipCopperKnife ]
+        Just w -> 
+            [ Html.Events.onClick <| UnEquipWeapon w ]
 
 equippedArmorActions : Maybe String -> List (Html.Attribute Msg)
 equippedArmorActions m =
@@ -736,14 +741,14 @@ update msg model =
         ( BuyItem item, NotExploring ) ->
             updateBuyItem item model
         
-        ( BuyCopperKnife, NotExploring ) ->
-            updateBuyCopperKnife model
+        ( BuyWeapon weapon, NotExploring ) ->
+            updateBuyWeapon weapon model
         
-        ( EquipCopperKnife, _ ) ->
-            updateEquipCopperKnife model
+        ( EquipWeapon weapon, _ ) ->
+            updateEquipWeapon weapon model
         
-        ( UnEquipCopperKnife, _ ) ->
-            updateUnEquipCopperKnife model
+        ( UnEquipWeapon weapon, _ ) ->
+            updateUnEquipWeapon weapon model
         
         ( UseItem item, _ ) ->
             updateUseItem item model
@@ -977,11 +982,11 @@ updateBuyItem item model =
     in
     ( newModel, Cmd.none )
 
-updateBuyCopperKnife : Model -> ( Model, Cmd Msg )
-updateBuyCopperKnife model =
+updateBuyWeapon : Weapon -> Model -> ( Model, Cmd Msg )
+updateBuyWeapon weapon model =
     let
-        paid = if model.gold >= 10 then 10 else 0
-        newWeapons = if model.gold >= 10 then [ "Copper Knife" ] else []
+        paid = if model.gold >= weapon.price then weapon.price else 0
+        newWeapons = if model.gold >= weapon.price then [ weapon ] else []
         newModel =
             { model
                 | weapons = List.append newWeapons model.weapons
@@ -1001,26 +1006,26 @@ updateUseItem item model =
     in
     ( newModel, Cmd.none )
 
-updateEquipCopperKnife : Model -> ( Model, Cmd Msg )
-updateEquipCopperKnife model =
+updateEquipWeapon : Weapon -> Model -> ( Model, Cmd Msg )
+updateEquipWeapon weapon model =
     let
         newModel =
             { model
                 | weapons = Maybe.withDefault [] (List.tail model.weapons)
-                , equippedWeapon = Just "Copper Knife"
-                , attack = model.attack + 1
+                , equippedWeapon = Just weapon
+                , attack = model.attack + weapon.attackBonus
             }
     in
     ( newModel, Cmd.none )
 
-updateUnEquipCopperKnife : Model -> ( Model, Cmd Msg )
-updateUnEquipCopperKnife model =
+updateUnEquipWeapon : Weapon -> Model -> ( Model, Cmd Msg )
+updateUnEquipWeapon weapon model =
     let
         newModel =
             { model
-                | weapons = "Copper Knife" :: model.weapons
+                | weapons = weapon :: model.weapons
                 , equippedWeapon = Nothing
-                , attack = model.attack - 1
+                , attack = model.attack - weapon.attackBonus
             }
     in
     ( newModel, Cmd.none )
