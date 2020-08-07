@@ -27,15 +27,15 @@ type alias Model =
     , inventory : List Item
     , weapons : List Weapon
     , equippedWeapon : Maybe Weapon
-    , armors : List String
-    , equippedArmor : Maybe String
-    , skills : Set.Set String
+    , armors : List Armor
+    , equippedArmor : Maybe Armor
+    , skills : List Skill
     , increaseMaxHitPointFlag : Bool
     , increaseAttackFlag : Bool
     , increaseDefenseFlag : Bool
     , encounteredMonster : Maybe Monster
     , messages : List String
-    , activeSkills : Set.Set String
+    , activeSkills : List Skill
     , depth : Int
     , maps : List Map
     , currentMap : Maybe Map
@@ -59,11 +59,11 @@ type Msg
     | IncreaseMaxHitPoints
     | IncreaseAttack
     | IncreaseDefense
-    | LearnForestWalk
-    | UseForestWalk
-    | BuyLeatherArmor
-    | EquipLeatherArmor
-    | UnEquipLeatherArmor
+    | LearnSkill Skill
+    | UseSkill Skill
+    | BuyArmor Armor
+    | EquipArmor Armor
+    | UnEquipArmor Armor
     | GenerateTreasure (Random.Generator Treasure)
     | GetTreasure Treasure
     | GenerateMonster (Random.Generator Monster)
@@ -195,7 +195,7 @@ mapGenerator level =
                         [ ( 3, GoldTreasure 1 )
                         , ( 3, ItemTreasure { name = "Buttermilk Old-Fasioned Donut", price = 6, frequency = Common, healAmount = 1 } )
                         , ( 1, WeaponTreasure { name = "Copper Knife", price = 10, frequency = Common, attackBonus = 1 } )
-                        , ( 1, ArmorTreasure "Leather Armor" )
+                        , ( 1, ArmorTreasure { name = "Leather Armor", price = 15, frequency = Common, defenseBonus = 1 } )
                         ]
             in
             Random.constant majorTreasureGenerator
@@ -205,7 +205,7 @@ mapGenerator level =
                 goalTreasureGenerator =
                     Random.weighted
                         ( 1, WeaponTreasure { name = "Copper Knife", price = 10, frequency = Common, attackBonus = 1 } )
-                        [ ( 1, ArmorTreasure "Leather Armor" )
+                        [ ( 1, ArmorTreasure { name = "Leather Armor", price = 15, frequency = Common, defenseBonus = 1 } )
                         ]
             in
             Random.constant goalTreasureGenerator
@@ -401,6 +401,7 @@ type alias Weapon =
 
 type alias Armor =
     { name : String
+    , price : Int
     , frequency : Frequency
     , defenseBonus : Int
     }
@@ -420,12 +421,18 @@ allWeapons =
     [ { name = "Copper Knife", price = 10, frequency = Common, attackBonus = 1 }
     ]
 
+allArmors : List Armor
+allArmors =
+    [ { name = "Leather Armor", price = 15, frequency = Common, defenseBonus = 1 }
+    ]
+
 allObjects : List Object
 allObjects =
-    (List.map ItemObject allItems)
-    ++ (List.map WeaponObject allWeapons)
-    ++ [ ArmorObject { name = "Leather Armor", frequency = Common, defenseBonus = 1 }
-    ]
+    List.concat
+        [ List.map ItemObject allItems
+        , List.map WeaponObject allWeapons
+        , List.map ArmorObject allArmors
+        ]
 
 type Treasure
     = TrapTreasure Int
@@ -433,7 +440,30 @@ type Treasure
     | GoldTreasure Int
     | ItemTreasure Item
     | WeaponTreasure Weapon
-    | ArmorTreasure String
+    | ArmorTreasure Armor
+
+allTreasures : List Treasure
+allTreasures =
+    List.concat
+        [ [ TrapTreasure 1 ]
+        , [ EmptyTreasure ]
+        , [ GoldTreasure 1 ]
+        , List.map ItemTreasure allItems
+        , List.map WeaponTreasure allWeapons
+        , List.map ArmorTreasure allArmors
+        ]
+
+type alias Skill =
+    { name : String
+    , learnCost : Int
+    , mpCost : Int
+    , forestWalkEffect : Bool
+    }
+
+allSkills : List Skill
+allSkills =
+    [ { name = "Forest Walk", learnCost = 2, mpCost = 1, forestWalkEffect = True }
+    ]
 
 main : Program () Model Msg
 main =
@@ -471,13 +501,13 @@ init _ =
             , equippedWeapon = Nothing
             , armors = []
             , equippedArmor = Nothing
-            , skills = Set.empty
+            , skills = []
             , increaseMaxHitPointFlag = False
             , increaseAttackFlag = False
             , increaseDefenseFlag = False
             , encounteredMonster = Nothing
             , messages = []
-            , activeSkills = Set.empty
+            , activeSkills = []
             , depth = 0
             , maps = []
             , currentMap = Nothing
@@ -537,25 +567,25 @@ view model =
             [ Html.li [] [ Html.text <| "Armor: " ]
             , Html.ul 
                 []
-                ( List.map (\armor -> Html.button [ Html.Events.onClick EquipLeatherArmor ] [ Html.text armor ]) model.armors )
+                ( List.map (\armor -> Html.button [ Html.Events.onClick <| EquipArmor armor ] [ Html.text armor.name ]) model.armors )
             ]
         , Html.li [] 
             [ Html.li [] [ Html.text <| "Equipped Armor: " ]
             , Html.ul 
                 []
-                [ Html.button (equippedArmorActions model.equippedArmor) [ Html.text <| Maybe.withDefault "Nothing" model.equippedArmor ] ]
+                [ Html.button (equippedArmorActions model.equippedArmor) [ Html.text <| Maybe.withDefault "Nothing" (Maybe.map .name model.equippedArmor) ] ]
             ]
         , Html.li [] 
             [ Html.li [] [ Html.text <| "Skills: " ]
             , Html.ul 
                 []
-                ( List.map (\skill -> Html.button [ Html.Events.onClick UseForestWalk ] [ Html.text skill ]) (Set.toList model.skills) )
+                ( List.map (\skill -> Html.button [ Html.Events.onClick <| UseSkill skill ] [ Html.text skill.name ]) model.skills )
             ]
         , Html.li [] 
             [ Html.li [] [ Html.text <| "Active Skills: " ]
             , Html.ul 
                 []
-                ( List.map (\skill -> Html.li [] [ Html.text skill ]) (Set.toList model.activeSkills) )
+                ( List.map (\skill -> Html.li [] [ Html.text skill.name ]) (model.activeSkills) )
             ]
         , case model.mode of
             Exploring exploreNode ->
@@ -601,7 +631,7 @@ viewExploring exploreNode model =
         options =
             case exploreNode of
                 TerrainNode ->
-                    if Set.member "Forest Walk" model.activeSkills then
+                    if List.any .forestWalkEffect model.activeSkills then
                         [ viewOption Leave "Leave"
                         , viewOption Continue "Continue"
                         ]
@@ -689,12 +719,12 @@ viewNotExploring model =
         ]
         ++ (List.map (\item -> Html.li [] [ Html.button [ Html.Events.onClick <| BuyItem item ] [ Html.text <| "Buy: " ++ item.name ] ]) allItems)
         ++ (List.map (\weapon -> Html.li [] [ Html.button [ Html.Events.onClick <| BuyWeapon weapon ] [ Html.text <| "Buy: " ++ weapon.name ] ]) allWeapons)
-        ++ [ Html.li [] [ Html.button [ Html.Events.onClick BuyLeatherArmor ] [ Html.text <| "Buy Leather Armor" ] ]
-        , Html.li [] [ Html.button [ Html.Events.onClick IncreaseMaxHitPoints ] [ Html.text <| "Increase Max HP" ] ]
+        ++ (List.map (\armor -> Html.li [] [ Html.button [ Html.Events.onClick <| BuyArmor armor ] [ Html.text <| "Buy: " ++ armor.name  ] ]) allArmors)
+        ++ [ Html.li [] [ Html.button [ Html.Events.onClick IncreaseMaxHitPoints ] [ Html.text <| "Increase Max HP" ] ]
         , Html.li [] [ Html.button [ Html.Events.onClick IncreaseAttack ] [ Html.text <| "Increase ATK" ] ]
         , Html.li [] [ Html.button [ Html.Events.onClick IncreaseDefense ] [ Html.text <| "Increase DEF" ] ]
-        , Html.li [] [ Html.button [ Html.Events.onClick LearnForestWalk ] [ Html.text <| "Learn Forest Walk" ] ]
         ]
+        ++ (List.map (\skill -> Html.li [] [ Html.button [ Html.Events.onClick <| LearnSkill skill ] [ Html.text <| "Learn: " ++ skill.name ] ]) allSkills)
         )
 
 equippedWeaponActions : Maybe Weapon -> List (Html.Attribute Msg)
@@ -706,14 +736,14 @@ equippedWeaponActions m =
         Just w -> 
             [ Html.Events.onClick <| UnEquipWeapon w ]
 
-equippedArmorActions : Maybe String -> List (Html.Attribute Msg)
+equippedArmorActions : Maybe Armor -> List (Html.Attribute Msg)
 equippedArmorActions m =
     case m of
         Nothing -> 
             []
         
-        Just _ -> 
-            [ Html.Events.onClick UnEquipLeatherArmor ]
+        Just a -> 
+            [ Html.Events.onClick <| UnEquipArmor a ]
 
 -- UPDATE
 
@@ -765,20 +795,20 @@ update msg model =
         ( IncreaseDefense, _ ) ->
             updateIncreaseDefense model
         
-        ( LearnForestWalk, _ ) ->
-            updateLearnForestWalk model
+        ( LearnSkill skill, _ ) ->
+            updateLearnSkill skill model
         
-        ( UseForestWalk, Exploring _ ) ->
-            updateUseForestWalk model
+        ( UseSkill skill, Exploring _ ) ->
+            updateUseSkill skill model
         
-        ( BuyLeatherArmor, NotExploring ) ->
-            updateBuyLeatherArmor model
+        ( BuyArmor armor, NotExploring ) ->
+            updateBuyArmor armor model
         
-        ( EquipLeatherArmor, _ ) ->
-            updateEquipLeatherArmor model
+        ( EquipArmor armor, _ ) ->
+            updateEquipArmor armor model
         
-        ( UnEquipLeatherArmor, _ ) ->
-            updateUnEquipLeatherArmor model
+        ( UnEquipArmor armor, _ ) ->
+            updateUnEquipArmor armor model
         
         ( GenerateTreasure distribution, _ ) ->
             updateGenerateTreasure distribution model
@@ -837,7 +867,7 @@ updateExplore map model =
             { model
                 | time = model.time - timeCost
                 , messages = []
-                , activeSkills = Set.empty
+                , activeSkills = []
                 , depth = 0
                 , currentMap = Just map
             }
@@ -960,7 +990,7 @@ updateFlee model =
                         | hitPoints = max (model.hitPoints - fleeDamage) 0
                         , encounteredMonster = Nothing
                         , mode = NotExploring
-                        , activeSkills = Set.empty
+                        , activeSkills = []
                         , currentMap = Nothing
                     }
                 
@@ -1088,14 +1118,14 @@ updateIncreaseDefense model =
     in
     ( newModel, Cmd.none )
 
-updateLearnForestWalk : Model -> ( Model, Cmd Msg )
-updateLearnForestWalk model =
+updateLearnSkill : Skill -> Model -> ( Model, Cmd Msg )
+updateLearnSkill skill model =
     let
-        condition = model.experience >= 2
-        expPaid = if condition then 2 else 0
+        condition = model.experience >= skill.learnCost
+        expPaid = if condition then skill.learnCost else 0
         newSkills =
             if condition then
-                Set.insert "Forest Walk" model.skills
+                skill :: model.skills
             else
                 model.skills
         newModel =
@@ -1106,23 +1136,29 @@ updateLearnForestWalk model =
     in
     ( newModel, Cmd.none )
 
-updateUseForestWalk : Model -> ( Model, Cmd Msg )
-updateUseForestWalk model =
+updateUseSkill : Skill -> Model -> ( Model, Cmd Msg )
+updateUseSkill skill model =
     let
-        magicCost = if model.magicPoints >= 1 then 1 else 0
+        condition = model.magicPoints >= skill.mpCost
+        magicCost = if condition then skill.mpCost else 0
+        newActiveSkills =
+            if condition then
+                skill :: model.activeSkills
+            else
+                model.activeSkills
         newModel =
             { model
                 | magicPoints = model.magicPoints - magicCost
-                , activeSkills = Set.insert "Forest Walk" model.activeSkills
+                , activeSkills = newActiveSkills
             }
     in
     ( newModel, Cmd.none )
 
-updateBuyLeatherArmor : Model -> ( Model, Cmd Msg )
-updateBuyLeatherArmor model =
+updateBuyArmor : Armor -> Model -> ( Model, Cmd Msg )
+updateBuyArmor armor model =
     let
-        paid = if model.gold >= 18 then 18 else 0
-        newArmors = if model.gold >= 18 then [ "Leather Armor" ] else []
+        paid = if model.gold >= armor.price then armor.price else 0
+        newArmors = if model.gold >= armor.price then [ armor ] else []
         newModel =
             { model
                 | armors = List.append newArmors model.armors
@@ -1131,26 +1167,26 @@ updateBuyLeatherArmor model =
     in
     ( newModel, Cmd.none )
 
-updateEquipLeatherArmor : Model -> ( Model, Cmd Msg )
-updateEquipLeatherArmor model =
+updateEquipArmor : Armor -> Model -> ( Model, Cmd Msg )
+updateEquipArmor armor model =
     let
         newModel =
             { model
-                | weapons = Maybe.withDefault [] (List.tail model.weapons)
-                , equippedArmor = Just "LeatherArmor"
-                , defense = model.defense + 1
+                | armors = Maybe.withDefault [] (List.tail model.armors)
+                , equippedArmor = Just armor
+                , defense = model.defense + armor.defenseBonus
             }
     in
     ( newModel, Cmd.none )
 
-updateUnEquipLeatherArmor : Model -> ( Model, Cmd Msg )
-updateUnEquipLeatherArmor model =
+updateUnEquipArmor : Armor -> Model -> ( Model, Cmd Msg )
+updateUnEquipArmor armor model =
     let
         newModel =
             { model
-                | armors = "Leather Armor" :: model.armors
+                | armors = armor :: model.armors
                 , equippedArmor = Nothing
-                , defense = model.defense - 1
+                , defense = model.defense - armor.defenseBonus
             }
     in
     ( newModel, Cmd.none )
@@ -1217,7 +1253,7 @@ updateLeave model =
         newModel =
             { model
                 | mode = NotExploring
-                , activeSkills = Set.empty
+                , activeSkills = []
                 , currentMap = Nothing
             }
     in
@@ -1281,7 +1317,7 @@ updateGetExploreNode exploreNode model =
         nextMessages =
             case nextExploreNode of
                 TerrainNode ->
-                    if Set.member "Forest Walk" newModel.activeSkills then
+                    if List.any (\s -> s.forestWalkEffect) model.activeSkills then
                         [ "You find a dense grove of trees. You find a narrow path between them to continue." ]
                     else
                         [ "You find a dense grove of trees. You cannot proceed." ]
