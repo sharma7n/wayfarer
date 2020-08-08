@@ -95,6 +95,14 @@ type alias Map =
     , goalTreasureGenerator : Random.Generator Treasure
     }
 
+weight : { a | level : Int, frequency : Frequency } -> Int -> Float
+weight a level =
+    let
+        suitability =
+            1 / ( toFloat (a.level - level)^2 + 1 )
+    in
+    suitability * frequencyToFloat a.frequency
+    
 mapGenerator : Int -> Random.Generator Map
 mapGenerator level =
     let
@@ -111,6 +119,31 @@ mapGenerator level =
         depthGenerator genLv =
             Random.int (10 + genLv) (10 + (2 * genLv))
         
+        tGenerator null all =
+            Random.weighted
+                ( 0, null )
+                ( List.map (\t -> (1, t )) all )
+        
+        trapGeneratorGenerator genLv =
+
+            tGenerator nullTrap allTraps
+        
+        trapGenerator =
+            tGenerator nullTrap allTraps
+
+        itemGenerator =
+            tGenerator nullItem allItems
+        
+        weaponGenerator =
+            tGenerator nullWeapon allWeapons
+        
+        armorGenerator =
+            tGenerator nullArmor allArmors
+        
+        furnitureGenerator =
+            tGenerator nullFurniture allFurniture
+        
+        
         exploreNodeGeneratorGenerator genLv =
             let
                 distribution lower upper node =
@@ -122,12 +155,6 @@ mapGenerator level =
                 
                 otherExploreNodesDistributionGenerator =
                     let
-                        trapGenerator : Random.Generator Trap
-                        trapGenerator =
-                            Random.weighted
-                                ( 0, nullTrap )
-                                ( List.map (\t -> ( 1, t )) allTraps )
-
                         trapNodeGenerator : Random.Generator ExploreNode
                         trapNodeGenerator =
                             Random.map TrapNode trapGenerator
@@ -172,21 +199,10 @@ mapGenerator level =
                         |> List.map (\m -> ( encounterRate genLv m, m ))
                         |> List.filter (\(r, m) -> (r >= minViableEncounterRate))
                 
-                uncons xls =
-                    case xls of
-                        x :: xs ->
-                            Just (x, xs)
-
-                        [] ->
-                            Nothing
-                
                 monsterGenerator =
-                    case uncons monsterDistributionList of
-                        Just ( head, tail ) ->
-                            Random.weighted head tail
-                        
-                        Nothing ->
-                            Random.constant missingno
+                    Random.weighted
+                        ( 0, missingno )
+                        monsterDistributionList
             in
             Random.constant monsterGenerator
 
@@ -278,7 +294,7 @@ type alias Monster =
     , expYield : Int
     , goldYield : Int
     , poison : Int
-    }
+    }   
 
 type Frequency
     = Common
@@ -437,6 +453,11 @@ type Object
     = ItemObject Item
     | WeaponObject Weapon
     | ArmorObject Armor
+    | FurnitureObject Furniture
+
+nullItem : Item
+nullItem =
+    newItem "Null Item" 0
 
 allItems : List Item
 allItems =
@@ -445,11 +466,19 @@ allItems =
     , let i = newItem "Escape Rope" 8 in { i | escapeFromDungeon = True }
     ]
 
+nullWeapon : Weapon
+nullWeapon =
+    { name = "Null Weapon", price = 0, frequency = Common, attackBonus = 0 }
+
 allWeapons : List Weapon
 allWeapons =
     [ { name = "Copper Knife", price = 10, frequency = Common, attackBonus = 1 }
     , { name = "Stone Axe", price = 60, frequency = Uncommon, attackBonus = 3 }
     ]
+
+nullArmor : Armor
+nullArmor =
+    { name = "Null Armor", price = 0, frequency = Common, defenseBonus = 0 }
 
 allArmors : List Armor
 allArmors =
@@ -469,6 +498,10 @@ newFurniture name price =
     , healAmount = 0
     }
 
+nullFurniture : Furniture
+nullFurniture =
+    newFurniture "Null Furniture" 0
+
 allFurniture : List Furniture
 allFurniture =
     [ let f = newFurniture "Heal Pillow" 25 in { f | healAmount = 1 }
@@ -480,6 +513,7 @@ allObjects =
         [ List.map ItemObject allItems
         , List.map WeaponObject allWeapons
         , List.map ArmorObject allArmors
+        , List.map FurnitureObject allFurniture
         ]
 
 type Treasure
@@ -544,15 +578,17 @@ allPassives =
 
 type alias Trap =
     { name : String
-    , difficulty : Int
+    , level : Int
+    , frequency : Frequency
     , damage : Int
     , poison : Int
     }
 
 newTrap : String -> Int -> Trap
-newTrap name difficulty =
+newTrap name level =
     { name = name
-    , difficulty = difficulty
+    , level = level
+    , frequency = Common
     , damage = 0
     , poison = 0
     }
@@ -986,7 +1022,7 @@ updateSpringTrap : Trap -> Model -> ( Model, Cmd Msg )
 updateSpringTrap trap model =
     let 
         newModel =
-            if model.agility < trap.difficulty then
+            if model.agility < trap.level then
                 { model
                     | hitPoints = max (model.hitPoints - trap.damage) 0
                     , poison = max (model.poison - trap.poison) 0
