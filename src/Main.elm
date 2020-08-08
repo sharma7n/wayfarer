@@ -389,6 +389,7 @@ type alias Item =
     , frequency : Frequency
     , healAmount : Int
     , escapeFromDungeon : Bool
+    , antidoteAmount : Int
     }
 
 newItem : String -> Int -> Item
@@ -398,6 +399,7 @@ newItem name price =
     , frequency = Common
     , healAmount = 0
     , escapeFromDungeon = False
+    , antidoteAmount = 0
     }
 
 type alias Weapon =
@@ -422,12 +424,14 @@ type Object
 allItems : List Item
 allItems =
     [ let i = newItem "Buttermilk Old-Fashioned Donut" 6 in { i | healAmount = 1}
+    , let i = newItem "Antidote" 4 in { i | antidoteAmount = 1 }
     , let i = newItem "Escape Rope" 8 in { i | escapeFromDungeon = True }
     ]
 
 allWeapons : List Weapon
 allWeapons =
     [ { name = "Copper Knife", price = 10, frequency = Common, attackBonus = 1 }
+    , { name = "Stone Axe", price = 60, frequency = Uncommon, attackBonus = 3 }
     ]
 
 allArmors : List Armor
@@ -519,6 +523,27 @@ allPassives =
     , let p = newPassive "ATK +1" 10 in { p | attackBonus = 1 }
     , let p = newPassive "DEF +1" 10 in { p | defenseBonus = 1 }
     , let p = newPassive "AGI +1" 10 in { p | agilityBonus = 1 }
+    ]
+
+type alias Trap =
+    { name : String
+    , difficulty : Int
+    , damage : Int
+    , poison : Int
+    }
+
+newTrap : String -> Int -> Trap
+newTrap name difficulty =
+    { name = name
+    , difficulty = difficulty
+    , damage = 0
+    , poison = 0
+    }
+
+allTraps : List Trap
+allTraps =
+    [ let t = newTrap "Arrow Trap" 1 in { t | damage = 1 }
+    , let t = newTrap "Poison Trap" 2 in { t | poison = 1 }
     ]
 
 main : Program () Model Msg
@@ -1099,11 +1124,23 @@ updateUseItem item model =
             else
                 model.mode
         
+        newPoison =
+            case model.poison of
+                Just psn ->
+                    let
+                        newPsn = max (psn - item.antidoteAmount) 0
+                    in
+                    if newPsn > 0 then Just newPsn else Nothing
+                
+                Nothing ->
+                    Nothing
+        
         newModel =
             { model
                 | inventory = Maybe.withDefault [] (List.tail model.inventory)
                 , hitPoints = min (model.hitPoints + item.healAmount) model.maxHitPoints
                 , mode = newMode
+                , poison = newPoison
             }
     in
     ( newModel, Cmd.none )
