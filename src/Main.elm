@@ -37,7 +37,7 @@ type alias Model =
     , depth : Int
     , maps : List Map
     , currentMap : Maybe Map
-    , poison : Maybe Int
+    , poison : Int
     , residence : String
     , furniture : List Furniture
     }
@@ -45,7 +45,7 @@ type alias Model =
 type Msg
     = Inn
     | Explore Map
-    | SpringTrap
+    | SpringTrap Trap
     | Fight
     | BossFight Monster
     | Flee
@@ -78,7 +78,7 @@ type Mode
 
 type ExploreNode
     = TerrainNode
-    | TrapNode
+    | TrapNode Trap
     | MonsterNode
     | TreasureNode TreasureQuality
     | SavePointNode
@@ -121,8 +121,25 @@ mapGenerator level =
                     distribution 1 (1 + (genLv // 4)) SavePointNode
                 
                 otherExploreNodesDistributionGenerator =
+                    let
+                        trapGenerator : Random.Generator Trap
+                        trapGenerator =
+                            Random.weighted
+                                ( 0, nullTrap )
+                                ( List.map (\t -> ( 1, t )) allTraps )
+
+                        trapNodeGenerator : Random.Generator ExploreNode
+                        trapNodeGenerator =
+                            Random.map TrapNode trapGenerator
+
+                        trapNodeDistributionGenerator : Random.Generator ( Float, ExploreNode )
+                        trapNodeDistributionGenerator =
+                            trapNodeGenerator |> Random.andThen (\trapNode ->
+                            distribution 2 (2 + genLv) trapNode
+                            )
+                    in
                     ( distribution 4 (4 + (genLv // 2)) TerrainNode ) |> Random.andThen (\terrainNodeDistribution ->
-                    ( distribution 2 (2 + genLv) TrapNode ) |> Random.andThen (\trapNodeDistribution ->
+                    trapNodeDistributionGenerator |> Random.andThen (\trapNodeDistribution ->
                     ( distribution 6 (6 + genLv) MonsterNode ) |> Random.andThen (\monsterNodeDistribution ->
                     ( distribution 6 (6 + (genLv // 2)) (TreasureNode MinorTreasureQuality) ) |> Random.andThen (\minorTreasureNodeDistribution ->
                     ( distribution 2 (2 + (genLv // 4)) (TreasureNode MajorTreasureQuality) ) |> Random.andThen (\majorTreasureNodeDistribution ->
@@ -177,7 +194,7 @@ mapGenerator level =
             let
                 minorTreasureGenerator =
                     Random.weighted
-                        ( 1, TrapTreasure 1 )
+                        ( 1, TrapTreasure (let t = newTrap "Arrow Trap" 1 in { t | damage = 1 }) )
                         [ ( 3, EmptyTreasure )
                         , ( 1, GoldTreasure 1 )
                         , ( 1, ItemTreasure (let i = newItem "Buttermilk Old-Fashioned Donut" 6 in { i | healAmount = 1}) )
@@ -189,7 +206,7 @@ mapGenerator level =
             let
                 majorTreasureGenerator =
                     Random.weighted
-                        ( 1, TrapTreasure 1 )
+                        ( 1, TrapTreasure (let t = newTrap "Arrow Trap" 1 in { t | damage = 1 }) )
                         [ ( 3, GoldTreasure 1 )
                         , ( 3, ItemTreasure (let i = newItem "Buttermilk Old-Fashioned Donut" 6 in { i | healAmount = 1}) )
                         , ( 1, WeaponTreasure { name = "Copper Knife", price = 10, frequency = Common, attackBonus = 1 } )
@@ -223,8 +240,8 @@ exploreNodeToString exploreNode =
         TerrainNode ->
             "Terrain"
         
-        TrapNode ->
-            "Trap"
+        TrapNode trap ->
+            "Trap: " ++ trap.name
         
         MonsterNode ->
             "Monster"
@@ -260,7 +277,7 @@ type alias Monster =
     , agility : Int
     , expYield : Int
     , goldYield : Int
-    , poison : Maybe Int
+    , poison : Int
     }
 
 type Frequency
@@ -294,7 +311,7 @@ missingno =
     , agility = 0
     , expYield = 0
     , goldYield = 0
-    , poison = Nothing
+    , poison = 0
     }
 
 pigeon : Monster
@@ -307,7 +324,7 @@ pigeon =
     , agility = 2
     , expYield = 1
     , goldYield = 1
-    , poison = Nothing
+    , poison = 0
     }
 
 bossPigeon : Monster
@@ -320,7 +337,7 @@ bossPigeon =
     , agility = 1
     , expYield = 10
     , goldYield = 10
-    , poison = Nothing
+    , poison = 0
     }
 
 owl : Monster
@@ -333,7 +350,7 @@ owl =
     , agility = 1
     , expYield = 1
     , goldYield = 2
-    , poison = Nothing
+    , poison = 0
     }
 
 snake : Monster
@@ -346,7 +363,7 @@ snake =
     , agility = 1
     , expYield = 1
     , goldYield = 2
-    , poison = Just 1
+    , poison = 1
     }
 
 wolf : Monster
@@ -359,7 +376,7 @@ wolf =
     , agility = 1
     , expYield = 3
     , goldYield = 3
-    , poison = Nothing
+    , poison = 0
     }
 
 bear : Monster
@@ -372,7 +389,7 @@ bear =
     , agility = 1
     , expYield = 6
     , goldYield = 6
-    , poison = Nothing
+    , poison = 0
     }
 
 allMonsters =
@@ -466,7 +483,7 @@ allObjects =
         ]
 
 type Treasure
-    = TrapTreasure Int
+    = TrapTreasure Trap
     | EmptyTreasure
     | GoldTreasure Int
     | ItemTreasure Item
@@ -476,7 +493,7 @@ type Treasure
 allTreasures : List Treasure
 allTreasures =
     List.concat
-        [ [ TrapTreasure 1 ]
+        [ List.map TrapTreasure allTraps
         , [ EmptyTreasure ]
         , [ GoldTreasure 1 ]
         , List.map ItemTreasure allItems
@@ -540,6 +557,10 @@ newTrap name difficulty =
     , poison = 0
     }
 
+nullTrap : Trap
+nullTrap =
+    newTrap "Null Trap" 0
+
 allTraps : List Trap
 allTraps =
     [ let t = newTrap "Arrow Trap" 1 in { t | damage = 1 }
@@ -590,7 +611,7 @@ init _ =
             , depth = 0
             , maps = []
             , currentMap = Nothing
-            , poison = Nothing
+            , poison = 0
             , residence = "Hostel"
             , furniture = []
             }
@@ -613,11 +634,9 @@ view model =
         , Html.li [] [ Html.text <| "Level: " ++ String.fromInt model.level ]
         , Html.li [] [ Html.text <| "EXP: " ++ String.fromInt model.experience ++ " / " ++ String.fromInt model.totalExperience ++ " / " ++ String.fromInt (model.level * model.level * 10) ]
         , Html.li [] [ Html.text <| "HP: " ++ String.fromInt model.hitPoints ++ " / " ++ String.fromInt model.maxHitPoints ]
-        , ( case model.poison of
-            Just poisonStacks ->
-                Html.li [] [ Html.text <| "Poison: " ++ String.fromInt poisonStacks ]
-
-            Nothing ->
+        , ( if model.poison > 0 then
+                Html.li [] [ Html.text <| "Poison: " ++ String.fromInt model.poison ]
+            else
                 Html.node "blank" [] []
           )
         , Html.li [] [ Html.text <| "MP: " ++ String.fromInt model.magicPoints ++ " / " ++ String.fromInt model.maxMagicPoints ]
@@ -731,9 +750,9 @@ viewExploring exploreNode model =
                         [ viewOption Leave "Leave"
                         ]
                 
-                TrapNode ->
+                TrapNode trap ->
                     [ viewOption Leave "Leave"
-                    , viewOption SpringTrap "Spring Trap"
+                    , viewOption (SpringTrap trap) "Spring Trap"
                     ]
                 
                 MonsterNode ->
@@ -743,10 +762,9 @@ viewExploring exploreNode model =
                                 [ Html.li [] [ Html.text <| "Name: " ++ monster.name ]
                                 , Html.li [] [ Html.text <| "Attack: " ++ String.fromInt monster.attack ]
                                 , Html.li [] [ Html.text <| "Defense: " ++ String.fromInt monster.defense ]
-                                , case monster.poison of
-                                    Just psn ->
-                                        Html.li [] [ Html.text <| "Poison: " ++ String.fromInt psn ]
-                                    Nothing ->
+                                , if monster.poison > 0 then
+                                        Html.li [] [ Html.text <| "Poison: " ++ String.fromInt monster.poison ]
+                                  else
                                         Html.node "blank" [] []
                                 
                                 , Html.li [] [ Html.text <| "EXP Yield: " ++ String.fromInt monster.expYield ]
@@ -846,8 +864,8 @@ update msg model =
         ( Explore map, NotExploring ) ->
             updateExplore map model
         
-        ( SpringTrap, Exploring TrapNode ) ->
-            updateSpringTrap model
+        ( SpringTrap trap, Exploring _ ) ->
+            updateSpringTrap trap model
         
         ( Fight, Exploring MonsterNode ) ->
             updateFight model
@@ -964,13 +982,17 @@ updateExplore map model =
     in
     ( newModel, nextCmd )
 
-updateSpringTrap : Model -> ( Model, Cmd Msg )
-updateSpringTrap model =
+updateSpringTrap : Trap -> Model -> ( Model, Cmd Msg )
+updateSpringTrap trap model =
     let 
         newModel =
-            { model
-                | hitPoints = max (model.hitPoints - 1) 0
-            }
+            if model.agility < trap.difficulty then
+                { model
+                    | hitPoints = max (model.hitPoints - trap.damage) 0
+                    , poison = max (model.poison - trap.poison) 0
+                }
+            else
+                model
     in
     ( newModel, getNextExploreNode model.currentMap )
 
@@ -981,22 +1003,12 @@ updateBossFight monster model =
         win = model.attack >= monster.defense
         goldGain = if win then monster.goldYield else 0
         expGainer = if win then updateExpGain monster.expYield else \m -> m 
-        newPoison =
-            case (monster.poison, model.poison) of
-                ( Nothing, _ ) ->
-                    model.poison
-                
-                ( Just ps, Nothing ) ->
-                    Just ps
-                
-                ( Just p, Just q) ->
-                    Just <| p + q
         
         newModel =
             { model
                 | hitPoints = max (model.hitPoints - damage) 0
                 , gold = model.gold + goldGain
-                , poison = newPoison
+                , poison = model.poison + monster.poison
             }
                 |> expGainer
     in
@@ -1013,22 +1025,12 @@ updateFight model =
                         win = model.attack >= monster.defense
                         goldGain = if model.attack >= monster.defense then monster.goldYield else 0
                         expGainer = if win then updateExpGain monster.expYield else \m -> m
-                        newPoison =
-                            case (monster.poison, model.poison) of
-                                ( Nothing, _ ) ->
-                                    model.poison
-                                
-                                ( Just ps, Nothing ) ->
-                                    Just ps
-                                
-                                ( Just p, Just q) ->
-                                    Just <| p + q
                     in
                     { model
                         | hitPoints = max (model.hitPoints - damage) 0
                         , gold = model.gold + goldGain
                         , encounteredMonster = Nothing
-                        , poison = newPoison
+                        , poison = model.poison + monster.poison
                     }
                         |> expGainer
                 
@@ -1124,23 +1126,12 @@ updateUseItem item model =
             else
                 model.mode
         
-        newPoison =
-            case model.poison of
-                Just psn ->
-                    let
-                        newPsn = max (psn - item.antidoteAmount) 0
-                    in
-                    if newPsn > 0 then Just newPsn else Nothing
-                
-                Nothing ->
-                    Nothing
-        
         newModel =
             { model
                 | inventory = Maybe.withDefault [] (List.tail model.inventory)
                 , hitPoints = min (model.hitPoints + item.healAmount) model.maxHitPoints
                 , mode = newMode
-                , poison = newPoison
+                , poison = max (model.poison - item.antidoteAmount) 0
             }
     in
     ( newModel, Cmd.none )
@@ -1290,8 +1281,11 @@ updateGetTreasure genNext treasure model =
         
         newModel =
             case treasure of
-                TrapTreasure damage ->
-                    { model | hitPoints = max (model.hitPoints - damage) 0 }
+                TrapTreasure trap ->
+                    let
+                        ( model2, _ ) = updateSpringTrap trap model
+                    in
+                    model2
                 
                 EmptyTreasure ->
                     model
@@ -1354,7 +1348,7 @@ updateContinue model =
 updateGetExploreNode : ExploreNode -> Model -> ( Model, Cmd Msg )
 updateGetExploreNode exploreNode model =
     let
-        hpLossFromPoison = Maybe.withDefault 0 model.poison
+        hpLossFromPoison = model.poison
         maxDepth =
             model.currentMap
                 |> Maybe.map .depth
@@ -1405,7 +1399,7 @@ updateGetExploreNode exploreNode model =
                     else
                         [ "You find a dense grove of trees. You cannot proceed." ]
                 
-                TrapNode ->
+                TrapNode _ ->
                     [ "You sense danger..." ]
                 
                 TreasureNode MinorTreasureQuality ->
