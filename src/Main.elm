@@ -102,7 +102,11 @@ weight a level =
             1 / ( toFloat (a.level - level)^2 + 1 )
     in
     suitability * frequencyToFloat a.frequency
-    
+
+minWeight : Float
+minWeight =
+    1 / 256
+
 mapGenerator : Int -> Random.Generator Map
 mapGenerator level =
     let
@@ -185,19 +189,10 @@ mapGenerator level =
         
         monsterGeneratorGenerator genLv =
             let
-                encounterRate gLv monster =
-                    let
-                        suitability = 1 / (toFloat ((monster.level - gLv) * (monster.level - gLv)) + 1)
-                        encounterRateModifier = frequencyToFloat monster.encounterRate
-                    in
-                    suitability * encounterRateModifier
-                
-                minViableEncounterRate = 1 / 256
-                
                 monsterDistributionList =
                     allMonsters
-                        |> List.map (\m -> ( encounterRate genLv m, m ))
-                        |> List.filter (\(r, m) -> (r >= minViableEncounterRate))
+                        |> List.map (\m -> ( weight m genLv, m ))
+                        |> List.filter (\(r, _) -> (r >= minWeight))
                 
                 monsterGenerator =
                     Random.weighted
@@ -205,6 +200,20 @@ mapGenerator level =
                         monsterDistributionList
             in
             Random.constant monsterGenerator
+        
+        trapGeneratorGenerator genLv =
+            let
+                trapDistributionList =
+                    allTraps
+                        |> List.map (\t -> ( weight t genLv, t ))
+                        |> List.filter (\(r, _) -> (r >= minWeight))
+                
+                trapGenerator =
+                    Random.weighted
+                        ( 0, nullTrap )
+                        trapDistributionList
+            in
+            Random.constant trapGenerator
 
         minorTreasureGeneratorGenerator genLv =
             let
@@ -286,7 +295,7 @@ type TreasureQuality
 
 type alias Monster =
     { level : Int
-    , encounterRate : Frequency
+    , frequency : Frequency
     , name : String
     , attack : Int
     , defense : Int
@@ -320,7 +329,7 @@ frequencyToFloat freq =
 missingno : Monster
 missingno =
     { level = 99
-    , encounterRate = Common
+    , frequency = Common
     , name = "Missingno"
     , attack = 0
     , defense = 0
@@ -333,7 +342,7 @@ missingno =
 pigeon : Monster
 pigeon =
     { level = 1
-    , encounterRate = Common
+    , frequency = Common
     , name = "Pigeon"
     , attack = 1
     , defense = 1
@@ -346,7 +355,7 @@ pigeon =
 bossPigeon : Monster
 bossPigeon =
     { level = 2
-    , encounterRate = Legendary
+    , frequency = Legendary
     , name = "Boss Pigeon"
     , attack = 8
     , defense = 2
@@ -359,7 +368,7 @@ bossPigeon =
 owl : Monster
 owl =
     { level = 1
-    , encounterRate = Uncommon
+    , frequency = Uncommon
     , name = "Owl"
     , attack = 1
     , defense = 2
@@ -372,7 +381,7 @@ owl =
 snake : Monster
 snake =
     { level = 2
-    , encounterRate = Uncommon
+    , frequency = Uncommon
     , name = "Snake"
     , attack = 1
     , defense = 1
@@ -385,7 +394,7 @@ snake =
 wolf : Monster
 wolf =
     { level = 2
-    , encounterRate = Common
+    , frequency = Common
     , name = "Wolf"
     , attack = 3
     , defense = 3
@@ -398,7 +407,7 @@ wolf =
 bear : Monster
 bear =
     { level = 3
-    , encounterRate = Uncommon
+    , frequency = Uncommon
     , name = "Bear"
     , attack = 7
     , defense = 5
