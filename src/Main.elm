@@ -39,6 +39,7 @@ type alias Model =
     , currentMap : Maybe Map
     , poison : Maybe Int
     , residence : String
+    , furniture : List Furniture
     }
 
 type Msg
@@ -69,6 +70,7 @@ type Msg
     | GetExploreNode ExploreNode
     | GetMap Map
     | DoWork
+    | BuyFurniture Furniture
 
 type Mode
     = Exploring ExploreNode
@@ -433,6 +435,24 @@ allArmors =
     [ { name = "Leather Armor", price = 15, frequency = Common, defenseBonus = 1 }
     ]
 
+type alias Furniture =
+    { name : String
+    , price : Int
+    , healAmount : Int
+    }
+
+newFurniture : String -> Int -> Furniture
+newFurniture name price =
+    { name = name
+    , price = price
+    , healAmount = 0
+    }
+
+allFurniture : List Furniture
+allFurniture =
+    [ let f = newFurniture "Heal Pillow" 25 in { f | healAmount = 1 }
+    ]
+
 allObjects : List Object
 allObjects =
     List.concat
@@ -547,6 +567,7 @@ init _ =
             , currentMap = Nothing
             , poison = Nothing
             , residence = "Hostel"
+            , furniture = []
             }
     in   
     ( initModel, generateMap 0 )
@@ -584,6 +605,12 @@ view model =
             , Html.ul 
                 []
                 ( List.map (\item -> Html.button [ Html.Events.onClick (UseItem item) ] [ Html.text item.name ]) model.inventory )
+            ]
+        , Html.li [] 
+            [ Html.li [] [ Html.text <| "Furniture: " ]
+            , Html.ul 
+                []
+                ( List.map (\furniture -> Html.button [] [ Html.text furniture.name ]) model.furniture )
             ]
         , Html.li [] 
             [ Html.li [] [ Html.text <| "Weapons: " ]
@@ -758,6 +785,7 @@ viewNotExploring model =
         , Html.li [] [ Html.button [ Html.Events.onClick DoWork ] [ Html.text <| "Do Work" ] ]
         ]
         ++ (List.map (\item -> Html.li [] [ Html.button [ Html.Events.onClick <| BuyItem item ] [ Html.text <| "Buy: " ++ item.name ++ " (" ++ String.fromInt item.price ++ " G)" ] ]) allItems)
+        ++ (List.map (\furniture -> Html.li [] [ Html.button [ Html.Events.onClick <| BuyFurniture furniture ] [ Html.text <| "Buy: " ++ furniture.name ++ " (" ++ String.fromInt furniture.price ++ " G)" ] ]) allFurniture)
         ++ (List.map (\weapon -> Html.li [] [ Html.button [ Html.Events.onClick <| BuyWeapon weapon ] [ Html.text <| "Buy: " ++ weapon.name ++ " (" ++ String.fromInt weapon.price ++ " G)" ] ]) allWeapons)
         ++ (List.map (\armor -> Html.li [] [ Html.button [ Html.Events.onClick <| BuyArmor armor ] [ Html.text <| "Buy: " ++ armor.name ++ " (" ++ String.fromInt armor.price ++ " G)" ] ]) allArmors)
         ++ (List.map (\skill -> Html.li [] [ Html.button [ Html.Events.onClick <| LearnSkill skill ] [ Html.text <| "Learn: " ++ skill.name ++ " (" ++ String.fromInt skill.learnCost ++ " EXP)" ] ]) allSkills)
@@ -880,10 +908,16 @@ update msg model =
 updateInn : Model -> ( Model, Cmd Msg )
 updateInn model =
     let 
+        healFromRest =
+            model.furniture
+                |> List.map .healAmount
+                |> List.sum
+        
         newModel =
             { model
                 | day = model.day + 1
                 , time = model.maxTime
+                , hitPoints = min (model.hitPoints + healFromRest) model.maxHitPoints
             }
     in
     ( newModel, Cmd.none )
