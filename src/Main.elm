@@ -178,7 +178,7 @@ mapGenerator level =
                         ( 1, TrapTreasure 1 )
                         [ ( 3, EmptyTreasure )
                         , ( 1, GoldTreasure 1 )
-                        , ( 1, ItemTreasure { name = "Buttermilk Old-Fasioned Donut", price = 6, frequency = Common, healAmount = 1 } )
+                        , ( 1, ItemTreasure (let i = newItem "Buttermilk Old-Fashioned Donut" 6 in { i | healAmount = 1}) )
                         ]
             in
             Random.constant minorTreasureGenerator
@@ -189,7 +189,7 @@ mapGenerator level =
                     Random.weighted
                         ( 1, TrapTreasure 1 )
                         [ ( 3, GoldTreasure 1 )
-                        , ( 3, ItemTreasure { name = "Buttermilk Old-Fasioned Donut", price = 6, frequency = Common, healAmount = 1 } )
+                        , ( 3, ItemTreasure (let i = newItem "Buttermilk Old-Fashioned Donut" 6 in { i | healAmount = 1}) )
                         , ( 1, WeaponTreasure { name = "Copper Knife", price = 10, frequency = Common, attackBonus = 1 } )
                         , ( 1, ArmorTreasure { name = "Leather Armor", price = 15, frequency = Common, defenseBonus = 1 } )
                         ]
@@ -386,6 +386,16 @@ type alias Item =
     , price : Int
     , frequency : Frequency
     , healAmount : Int
+    , escapeFromDungeon : Bool
+    }
+
+newItem : String -> Int -> Item
+newItem name price =
+    { name = name
+    , price = price
+    , frequency = Common
+    , healAmount = 0
+    , escapeFromDungeon = False
     }
 
 type alias Weapon =
@@ -409,7 +419,8 @@ type Object
 
 allItems : List Item
 allItems =
-    [ { name = "Buttermilk Old-Fashioned Donut", price = 6, frequency = Common, healAmount = 1 }
+    [ let i = newItem "Buttermilk Old-Fashioned Donut" 6 in { i | healAmount = 1}
+    , let i = newItem "Escape Rope" 8 in { i | escapeFromDungeon = True }
     ]
 
 allWeapons : List Weapon
@@ -740,17 +751,17 @@ viewNotExploring : Model -> Html.Html Msg
 viewNotExploring model =
     Html.ul []
         (
-        [ Html.li [] [ Html.button [ Html.Events.onClick Inn ] [ Html.text <| "Inn" ] ]
+        [ Html.li [] [ Html.button [ Html.Events.onClick Inn ] [ Html.text <| "Rest" ] ]
         , Html.li []
             ( List.map (\map -> Html.button [ Html.Events.onClick <| Explore map ] [ Html.text <| "Explore: " ++ map.name ]) model.maps )
         , Html.li [] [ Html.button [ Html.Events.onClick (BossFight bossPigeon) ] [ Html.text <| "Fight Boss Pigeon" ] ]
         , Html.li [] [ Html.button [ Html.Events.onClick DoWork ] [ Html.text <| "Do Work" ] ]
         ]
-        ++ (List.map (\item -> Html.li [] [ Html.button [ Html.Events.onClick <| BuyItem item ] [ Html.text <| "Buy: " ++ item.name ] ]) allItems)
-        ++ (List.map (\weapon -> Html.li [] [ Html.button [ Html.Events.onClick <| BuyWeapon weapon ] [ Html.text <| "Buy: " ++ weapon.name ] ]) allWeapons)
-        ++ (List.map (\armor -> Html.li [] [ Html.button [ Html.Events.onClick <| BuyArmor armor ] [ Html.text <| "Buy: " ++ armor.name  ] ]) allArmors)
-        ++ (List.map (\skill -> Html.li [] [ Html.button [ Html.Events.onClick <| LearnSkill skill ] [ Html.text <| "Learn: " ++ skill.name ] ]) allSkills)
-        ++ (List.map (\passive -> Html.li [] [ Html.button [ Html.Events.onClick <| LearnPassive passive ] [ Html.text <| "Learn: " ++ passive.name ] ]) allPassives)
+        ++ (List.map (\item -> Html.li [] [ Html.button [ Html.Events.onClick <| BuyItem item ] [ Html.text <| "Buy: " ++ item.name ++ " (" ++ String.fromInt item.price ++ " G)" ] ]) allItems)
+        ++ (List.map (\weapon -> Html.li [] [ Html.button [ Html.Events.onClick <| BuyWeapon weapon ] [ Html.text <| "Buy: " ++ weapon.name ++ " (" ++ String.fromInt weapon.price ++ " G)" ] ]) allWeapons)
+        ++ (List.map (\armor -> Html.li [] [ Html.button [ Html.Events.onClick <| BuyArmor armor ] [ Html.text <| "Buy: " ++ armor.name ++ " (" ++ String.fromInt armor.price ++ " G)" ] ]) allArmors)
+        ++ (List.map (\skill -> Html.li [] [ Html.button [ Html.Events.onClick <| LearnSkill skill ] [ Html.text <| "Learn: " ++ skill.name ++ " (" ++ String.fromInt skill.learnCost ++ " EXP)" ] ]) allSkills)
+        ++ (List.map (\passive -> Html.li [] [ Html.button [ Html.Events.onClick <| LearnPassive passive ] [ Html.text <| "Learn: " ++ passive.name ++ " (" ++ String.fromInt passive.learnCost ++ " EXP)" ] ]) allPassives)
         )
 
 equippedWeaponActions : Maybe Weapon -> List (Html.Attribute Msg)
@@ -1048,10 +1059,17 @@ updateBuyWeapon weapon model =
 updateUseItem : Item -> Model -> ( Model, Cmd Msg )
 updateUseItem item model =
     let
+        newMode =
+            if item.escapeFromDungeon then
+                NotExploring
+            else
+                model.mode
+        
         newModel =
             { model
                 | inventory = Maybe.withDefault [] (List.tail model.inventory)
                 , hitPoints = min (model.hitPoints + item.healAmount) model.maxHitPoints
+                , mode = newMode
             }
     in
     ( newModel, Cmd.none )
