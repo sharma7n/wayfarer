@@ -30,9 +30,7 @@ type alias Model =
     , armors : List Armor
     , equippedArmor : Maybe Armor
     , skills : List Skill
-    , increaseMaxHitPointFlag : Bool
-    , increaseAttackFlag : Bool
-    , increaseDefenseFlag : Bool
+    , passives : List Passive
     , encounteredMonster : Maybe Monster
     , messages : List String
     , activeSkills : List Skill
@@ -56,10 +54,8 @@ type Msg
     | EquipWeapon Weapon
     | UnEquipWeapon Weapon
     | SavePoint
-    | IncreaseMaxHitPoints
-    | IncreaseAttack
-    | IncreaseDefense
     | LearnSkill Skill
+    | LearnPassive Passive
     | UseSkill Skill
     | BuyArmor Armor
     | EquipArmor Armor
@@ -465,6 +461,35 @@ allSkills =
     [ { name = "Forest Walk", learnCost = 2, mpCost = 1, forestWalkEffect = True }
     ]
 
+type alias Passive =
+    { name : String
+    , learnCost : Int
+    , maxHitPointBonus : Int
+    , maxMagicPointBonus : Int
+    , attackBonus : Int
+    , defenseBonus : Int
+    , agilityBonus : Int
+    }
+
+newPassive : String -> Int -> Passive
+newPassive name learnCost =
+    { name = name
+    , learnCost = learnCost
+    , maxHitPointBonus = 0
+    , maxMagicPointBonus = 0
+    , attackBonus = 0
+    , defenseBonus = 0
+    , agilityBonus = 0
+    }
+
+allPassives : List Passive
+allPassives =
+    [ let p = newPassive "HP +2" 10 in { p | maxHitPointBonus = 2 }
+    , let p = newPassive "ATK +1" 10 in { p | attackBonus = 1 }
+    , let p = newPassive "DEF +1" 10 in { p | defenseBonus = 1 }
+    , let p = newPassive "AGI +1" 10 in { p | agilityBonus = 1 }
+    ]
+
 main : Program () Model Msg
 main =
     Browser.element
@@ -502,9 +527,7 @@ init _ =
             , armors = []
             , equippedArmor = Nothing
             , skills = []
-            , increaseMaxHitPointFlag = False
-            , increaseAttackFlag = False
-            , increaseDefenseFlag = False
+            , passives = []
             , encounteredMonster = Nothing
             , messages = []
             , activeSkills = []
@@ -580,6 +603,12 @@ view model =
             , Html.ul 
                 []
                 ( List.map (\skill -> Html.button [ Html.Events.onClick <| UseSkill skill ] [ Html.text skill.name ]) model.skills )
+            ]
+        , Html.li [] 
+            [ Html.li [] [ Html.text <| "Passive: " ]
+            , Html.ul 
+                []
+                ( List.map (\passive -> Html.button [] [ Html.text passive.name ]) model.passives )
             ]
         , Html.li [] 
             [ Html.li [] [ Html.text <| "Active Skills: " ]
@@ -720,11 +749,8 @@ viewNotExploring model =
         ++ (List.map (\item -> Html.li [] [ Html.button [ Html.Events.onClick <| BuyItem item ] [ Html.text <| "Buy: " ++ item.name ] ]) allItems)
         ++ (List.map (\weapon -> Html.li [] [ Html.button [ Html.Events.onClick <| BuyWeapon weapon ] [ Html.text <| "Buy: " ++ weapon.name ] ]) allWeapons)
         ++ (List.map (\armor -> Html.li [] [ Html.button [ Html.Events.onClick <| BuyArmor armor ] [ Html.text <| "Buy: " ++ armor.name  ] ]) allArmors)
-        ++ [ Html.li [] [ Html.button [ Html.Events.onClick IncreaseMaxHitPoints ] [ Html.text <| "Increase Max HP" ] ]
-        , Html.li [] [ Html.button [ Html.Events.onClick IncreaseAttack ] [ Html.text <| "Increase ATK" ] ]
-        , Html.li [] [ Html.button [ Html.Events.onClick IncreaseDefense ] [ Html.text <| "Increase DEF" ] ]
-        ]
         ++ (List.map (\skill -> Html.li [] [ Html.button [ Html.Events.onClick <| LearnSkill skill ] [ Html.text <| "Learn: " ++ skill.name ] ]) allSkills)
+        ++ (List.map (\passive -> Html.li [] [ Html.button [ Html.Events.onClick <| LearnPassive passive ] [ Html.text <| "Learn: " ++ passive.name ] ]) allPassives)
         )
 
 equippedWeaponActions : Maybe Weapon -> List (Html.Attribute Msg)
@@ -786,17 +812,11 @@ update msg model =
         ( SavePoint, Exploring SavePointNode ) ->
             updateSavePoint model
         
-        ( IncreaseMaxHitPoints, _ ) ->
-            updateIncreaseMaxHitPoints model
-        
-        ( IncreaseAttack, _ ) ->
-            updateIncreaseAttack model
-        
-        ( IncreaseDefense, _ ) ->
-            updateIncreaseDefense model
-        
         ( LearnSkill skill, _ ) ->
             updateLearnSkill skill model
+        
+        ( LearnPassive passive, _ ) ->
+            updateLearnPassive passive model
         
         ( UseSkill skill, Exploring _ ) ->
             updateUseSkill skill model
@@ -1073,51 +1093,6 @@ updateSavePoint model =
     in
     ( newModel, Cmd.none )
 
-updateIncreaseMaxHitPoints : Model -> ( Model, Cmd Msg )
-updateIncreaseMaxHitPoints model =
-    let
-        condition = model.experience >= 5 && not model.increaseMaxHitPointFlag
-        expPaid = if condition then 5 else 0
-        maxHitPointsGained = if condition then 1 else 0 
-        newModel =
-            { model
-                | maxHitPoints = model.maxHitPoints + maxHitPointsGained
-                , experience = model.experience - expPaid
-                , increaseMaxHitPointFlag = True
-            }
-    in
-    ( newModel, Cmd.none )
-
-updateIncreaseAttack : Model -> ( Model, Cmd Msg )
-updateIncreaseAttack model =
-    let
-        condition = model.experience >= 7 && not model.increaseAttackFlag
-        expPaid = if condition then 7 else 0
-        attackGained = if condition then 1 else 0 
-        newModel =
-            { model
-                | attack = model.attack + attackGained
-                , experience = model.experience - expPaid
-                , increaseAttackFlag = True
-            }
-    in
-    ( newModel, Cmd.none )
-
-updateIncreaseDefense : Model -> ( Model, Cmd Msg )
-updateIncreaseDefense model =
-    let
-        condition = model.experience >= 9 && not model.increaseDefenseFlag
-        expPaid = if condition then 9 else 0
-        defenseGained = if condition then 1 else 0 
-        newModel =
-            { model
-                | defense = model.defense + defenseGained
-                , experience = model.experience - expPaid
-                , increaseDefenseFlag = True
-            }
-    in
-    ( newModel, Cmd.none )
-
 updateLearnSkill : Skill -> Model -> ( Model, Cmd Msg )
 updateLearnSkill skill model =
     let
@@ -1133,6 +1108,25 @@ updateLearnSkill skill model =
                 | skills = newSkills
                 , experience = model.experience - expPaid
             }
+    in
+    ( newModel, Cmd.none )
+
+updateLearnPassive : Passive -> Model -> ( Model, Cmd Msg )
+updateLearnPassive passive model =
+    let
+        newModel =
+            if model.experience >= passive.learnCost then
+                { model
+                    | passives = passive :: model.passives
+                    , experience = model.experience - passive.learnCost
+                    , maxHitPoints = model.maxHitPoints + passive.maxHitPointBonus
+                    , maxMagicPoints = model.maxMagicPoints + passive.maxMagicPointBonus
+                    , attack = model.attack + passive.attackBonus
+                    , defense = model.defense + passive.defenseBonus
+                    , agility = model.agility + passive.agilityBonus
+                }
+            else
+                model
     in
     ( newModel, Cmd.none )
 
