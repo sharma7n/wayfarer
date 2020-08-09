@@ -183,10 +183,19 @@ mapGenerator level =
         levelGenerator =
             Random.int (level + 1) (round ((toFloat level) * 1.5) + 1)
         
-        goldGenerator =
-            levelGenerator |> Random.andThen (\genLv ->
-                Random.int genLv (genLv * 2)
+        goldGenerator : Float -> Random.Generator ( List (Float, Int) )
+        goldGenerator factor =
+            levelGenerator |> Random.map (\genLv ->
+            List.range genLv (genLv * 2)
+                |> List.map (\amount ->
+                    ( factor / (toFloat genLv), amount )
+                )
             )
+        
+        goldTreasureGenerator : Float -> Random.Generator ( List ( Float, Treasure ) )
+        goldTreasureGenerator factor =
+            goldGenerator factor
+                |> Random.map (List.map (\(f, i) -> (f, GoldTreasure i)))
         
         byLevel generator =
             levelGenerator
@@ -197,12 +206,7 @@ mapGenerator level =
         
         depthGenerator genLv =
             Random.int (10 + genLv) (10 + (2 * genLv))
-        
-        tGenerator null all =
-            Random.weighted
-                ( 0, null )
-                ( List.map (\t -> (1, t )) all )
-        
+
         trapGenerator : Random.Generator (NonEmptyList (Weighted Trap))
         trapGenerator =
             byLevel (randomTable nullTrap allTraps)
@@ -223,6 +227,17 @@ mapGenerator level =
         furnitureGenerator =
             byLevel (randomTable nullFurniture allFurniture)
         
+        monsterGenerator : Random.Generator (NonEmptyList (Weighted Monster))
+        monsterGenerator =
+            byLevel (randomTable nullMonster allMonsters)
+        
+        treasurify : Float -> (a -> b) -> Random.Generator (NonEmptyList (Weighted a)) -> Random.Generator ( List (Float, b ))
+        treasurify factor toTreasure nwGen =
+            nwGen |> Random.map (\nw ->
+                nonEmptyListToList nw
+                    |> List.map weightedToPair
+                    |> List.map (\(w,t) -> (factor * w, toTreasure t))
+            )
         
         exploreNodeGeneratorGenerator genLv =
             let
@@ -263,72 +278,48 @@ mapGenerator level =
                 savePointNodeDistributionGenerator
                 otherExploreNodesDistributionGenerator
         
-        monsterGeneratorGenerator genLv =
-            let
-                monsterDistributionList =
-                    allMonsters
-                        |> List.map (\m -> ( weight m genLv, m ))
-                        |> List.filter (\(r, _) -> (r >= minWeight))
-                
-                monsterGenerator =
-                    Random.weighted
-                        ( 0, missingno )
-                        monsterDistributionList
-            in
-            Random.constant monsterGenerator
-
-        minorTreasureGeneratorGenerator genLv =
-            let
-                trapTreasureGenerator =
-                    Random.map TrapTreasure trapGenerator
-                
-                goldTreasureGenerator =
-                    Random.map GoldTreasure goldGenerator
-                
-                minorTreasureGenerator =
-                    trapTreasureGenerator |> Random.andThen (\trapTreasure ->
-                    goldTreasureGenerator |> Random.andThen (\goldTreasure ->
-                    Random.weighted
-                        ( 1, trapTreasure )
-                        [ ( 3, EmptyTreasure )
-                        , ( 1, goldTreasure )
-                        , ( 1, ItemTreasure (let i = newItem "Buttermilk Old-Fashioned Donut" 6 in { i | healAmount = 1}) )
-                        ]
-                    ))
-            in
-
-            Random.constant minorTreasureGenerator
+        monsterGeneratorM : Random.Generator Monster
+        monsterGeneratorM =
+            monsterGenerator |> Random.andThen (\ne ->
+                Random.weighted
+                    ( weightedToPair ne.head )
+                    ( List.map weightedToPair ne.tail )
+            )
         
-        majorTreasureGeneratorGenerator genLv =
-            let
-                majorTreasureGenerator =
-                    Random.weighted
-                        ( 1, TrapTreasure (let t = newTrap "Arrow Trap" 1 in { t | damage = 1 }) )
-                        [ ( 3, GoldTreasure 1 )
-                        , ( 3, ItemTreasure (let i = newItem "Buttermilk Old-Fashioned Donut" 6 in { i | healAmount = 1}) )
-                        , ( 1, WeaponTreasure { name = "Copper Knife", price = 10, frequency = Common, attackBonus = 1 } )
-                        , ( 1, ArmorTreasure { name = "Leather Armor", price = 15, frequency = Common, defenseBonus = 1 } )
-                        ]
-            in
-            Random.constant majorTreasureGenerator
+        minorTreasureGenerator : Random.Generator Treasure
+        minorTreasureGenerator =
+            Random.Extra.andThen2 Random.weighted
+                ( Random.constant ( 3, EmptyTreasure ) )
+                ( Random.map List.concat <|
+                  Random.Extra.sequence <|
+                    [ treasurify 1 TrapTreasure trapGenerator
+                    , goldTreasureGenerator 1
+                    , treasurify 1 ItemTreasure itemGenerator
+                    ]
+                )
         
-        goalTreasureGeneratorGenerator =
-            let
-                treasurify : (a -> Treasure) -> Random.Generator (NonEmptyList (Weighted a)) -> Random.Generator ( List (Float, Treasure ))
-                treasurify toTreasure nwGen =
-                    nwGen |> Random.map (\nw ->
-                        nonEmptyListToList nw
-                            |> List.map weightedToPair
-                            |> List.map (\(w,t) -> (w, toTreasure t))
-                    )
-            in
+        majorTreasureGenerator : Random.Generator Treasure
+        majorTreasureGenerator =
             Random.Extra.andThen2 Random.weighted
                 ( Random.constant ( 0, EmptyTreasure ) )
                 ( Random.map List.concat <|
                   Random.Extra.sequence <|
-                    [ treasurify WeaponTreasure weaponGenerator
-                    , treasurify ArmorTreasure armorGenerator
-                    , treasurify FurnitureTreasure furnitureGenerator
+                    [ treasurify 1 TrapTreasure trapGenerator
+                    , goldTreasureGenerator 3
+                    , treasurify 3 ItemTreasure itemGenerator
+                    , treasurify 1 WeaponTreasure weaponGenerator
+                    , treasurify 1 ArmorTreasure armorGenerator
+                    ]
+                )
+        goalTreasureGenerator : Random.Generator Treasure
+        goalTreasureGenerator =
+            Random.Extra.andThen2 Random.weighted
+                ( Random.constant ( 0, EmptyTreasure ) )
+                ( Random.map List.concat <|
+                  Random.Extra.sequence <|
+                    [ treasurify 1 WeaponTreasure weaponGenerator
+                    , treasurify 1 ArmorTreasure armorGenerator
+                    , treasurify 1 FurnitureTreasure furnitureGenerator
                     ]
                 )
     in
@@ -336,10 +327,10 @@ mapGenerator level =
         |> Random.Extra.andMap levelGenerator
         |> Random.Extra.andMap ( byLevel depthGenerator )
         |> Random.Extra.andMap ( byLevel exploreNodeGeneratorGenerator )
-        |> Random.Extra.andMap ( byLevel monsterGeneratorGenerator )
-        |> Random.Extra.andMap ( byLevel minorTreasureGeneratorGenerator )
-        |> Random.Extra.andMap ( byLevel majorTreasureGeneratorGenerator )
-        |> Random.Extra.andMap ( Random.constant goalTreasureGeneratorGenerator )
+        |> Random.Extra.andMap ( Random.constant monsterGeneratorM )
+        |> Random.Extra.andMap ( Random.constant minorTreasureGenerator )
+        |> Random.Extra.andMap ( Random.constant majorTreasureGenerator )
+        |> Random.Extra.andMap ( Random.constant goalTreasureGenerator )
 
 exploreNodeToString : ExploreNode -> String
 exploreNodeToString exploreNode =
@@ -408,11 +399,11 @@ frequencyToFloat freq =
         Legendary ->
             1 / 64
 
-missingno : Monster
-missingno =
-    { level = 99
+newMonster : String -> Int -> Monster
+newMonster name level =
+    { level = level
     , frequency = Common
-    , name = "Missingno"
+    , name = name
     , attack = 0
     , defense = 0
     , agility = 0
@@ -421,18 +412,9 @@ missingno =
     , poison = 0
     }
 
-pigeon : Monster
-pigeon =
-    { level = 1
-    , frequency = Common
-    , name = "Pigeon"
-    , attack = 1
-    , defense = 1
-    , agility = 2
-    , expYield = 1
-    , goldYield = 1
-    , poison = 0
-    }
+nullMonster : Monster
+nullMonster =
+    newMonster "Null Monster" 0
 
 bossPigeon : Monster
 bossPigeon =
@@ -447,64 +429,12 @@ bossPigeon =
     , poison = 0
     }
 
-owl : Monster
-owl =
-    { level = 1
-    , frequency = Uncommon
-    , name = "Owl"
-    , attack = 1
-    , defense = 2
-    , agility = 1
-    , expYield = 1
-    , goldYield = 2
-    , poison = 0
-    }
-
-snake : Monster
-snake =
-    { level = 2
-    , frequency = Uncommon
-    , name = "Snake"
-    , attack = 1
-    , defense = 1
-    , agility = 1
-    , expYield = 1
-    , goldYield = 2
-    , poison = 1
-    }
-
-wolf : Monster
-wolf =
-    { level = 2
-    , frequency = Common
-    , name = "Wolf"
-    , attack = 3
-    , defense = 3
-    , agility = 1
-    , expYield = 3
-    , goldYield = 3
-    , poison = 0
-    }
-
-bear : Monster
-bear =
-    { level = 3
-    , frequency = Uncommon
-    , name = "Bear"
-    , attack = 7
-    , defense = 5
-    , agility = 1
-    , expYield = 6
-    , goldYield = 6
-    , poison = 0
-    }
-
 allMonsters =
-    [ pigeon
-    , owl
-    , snake
-    , wolf
-    , bear
+    [ let m = newMonster "Slime" 1 in { m | attack = 1, defense = 1, expYield = 1, goldYield = 1 }
+    , let m = newMonster "Owl" 1 in { m | frequency = Uncommon, attack = 1, defense = 2, expYield = 1, goldYield = 2 }
+    , let m = newMonster "Snake" 2 in { m | attack = 1, defense = 1, expYield = 2, goldYield = 2, poison = 1 }
+    , let m = newMonster "Wolf" 2 in { m | attack = 3, defense = 3, expYield = 3, goldYield = 3 }
+    , let m = newMonster "Bear" 3 in { m | attack = 7, defense = 5, expYield = 6, goldYield = 6 }
     ]
 
 type alias Item =
@@ -1514,7 +1444,7 @@ updateGetExploreNode exploreNode model =
         monsterGenerator =
             model.currentMap
                 |> Maybe.map .monsterGenerator
-                |> Maybe.withDefault ( Random.constant missingno )
+                |> Maybe.withDefault ( Random.constant nullMonster )
         
         newCmd =
             case nextExploreNode of
