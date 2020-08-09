@@ -40,6 +40,7 @@ type alias Model =
     , poison : Int
     , residence : String
     , furniture : List Furniture
+    , encounteredTrap : Maybe Trap
     }
 
 type Msg
@@ -63,7 +64,6 @@ type Msg
     | UnEquipArmor Armor
     | GenerateTreasure (Random.Generator Treasure)
     | GetTreasure Treasure
-    | GenerateMonster (Random.Generator Monster)
     | GetMonster Monster
     | Leave
     | Continue
@@ -71,6 +71,7 @@ type Msg
     | GetMap Map
     | DoWork
     | BuyFurniture Furniture
+    | GetTrap Trap
 
 type Mode
     = Exploring ExploreNode
@@ -93,6 +94,7 @@ type alias Map =
     , minorTreasureGenerator : Random.Generator Treasure
     , majorTreasureGenerator : Random.Generator Treasure
     , goalTreasureGenerator : Random.Generator Treasure
+    , trapGenerator : Random.Generator Trap
     }
 
 weight : { a | level : Int, frequency : Frequency } -> Int -> Float
@@ -276,6 +278,14 @@ mapGenerator level =
                     ( List.map weightedToPair ne.tail )
             )
         
+        trapGeneratorM : Random.Generator Trap
+        trapGeneratorM =
+            trapGenerator |> Random.andThen (\ne ->
+                Random.weighted
+                    ( weightedToPair ne.head )
+                    ( List.map weightedToPair ne.tail )
+            )
+        
         minorTreasureGenerator : Random.Generator Treasure
         minorTreasureGenerator =
             Random.Extra.andThen2 Random.weighted
@@ -321,6 +331,7 @@ mapGenerator level =
         |> Random.Extra.andMap ( Random.constant minorTreasureGenerator )
         |> Random.Extra.andMap ( Random.constant majorTreasureGenerator )
         |> Random.Extra.andMap ( Random.constant goalTreasureGenerator )
+        |> Random.Extra.andMap ( Random.constant trapGeneratorM )
 
 exploreNodeToString : ExploreNode -> String
 exploreNodeToString exploreNode =
@@ -688,6 +699,7 @@ init _ =
             , poison = 0
             , residence = "Hostel"
             , furniture = []
+            , encounteredTrap = Nothing
             }
     in   
     ( initModel, generateMap 0 )
@@ -825,7 +837,21 @@ viewExploring exploreNode model =
                         ]
                 
                 TrapNode ->
-                    [ viewOption Leave "Leave"
+                    [ case model.encounteredTrap of
+                        Just trap ->
+                            Html.ul []
+                                [ Html.li [] [ Html.text <| "Name: " ++ trap.name ]
+                                , Html.li [] [ Html.text <| "Damage: " ++ String.fromInt trap.damage ]
+                                , if trap.poison > 0 then
+                                    Html.li [] [ Html.text <| "Poison: " ++ String.fromInt trap.poison ]
+                                  else
+                                    Html.node "blank" [] []
+                                , viewOption (SpringTrap trap) "Spring Trap"
+                                ]
+                        Nothing ->
+                            Html.node "blank" [] []
+                    
+                    , viewOption Leave "Leave"
                     ]
                 
                 MonsterNode ->
@@ -997,11 +1023,11 @@ update msg model =
         ( GetTreasure treasure, _ ) ->
             updateGetTreasure False treasure model
         
-        ( GenerateMonster distribution, Exploring MonsterNode ) ->
-            updateGenerateMonster distribution model
-        
         ( GetMonster monster, Exploring MonsterNode ) ->
             updateGetMonster monster model
+        
+        ( GetTrap trap, Exploring TrapNode ) ->
+            updateGetTrap trap model
         
         ( Leave, Exploring _ ) ->
             updateLeave model
@@ -1063,6 +1089,7 @@ updateSpringTrap trap model =
                 { model
                     | hitPoints = max (model.hitPoints - trap.damage) 0
                     , poison = max (model.poison - trap.poison) 0
+                    , encounteredTrap = Nothing
                 }
             else
                 model
@@ -1380,14 +1407,6 @@ updateGetTreasure genNext treasure model =
     in
     ( newModel, nextCmd )
 
-updateGenerateMonster : Random.Generator Monster -> Model -> ( Model, Cmd Msg )
-updateGenerateMonster distribution model =
-    let
-        newCmd =
-            Random.generate GetMonster distribution
-    in
-    ( model, newCmd )
-
 updateGetMonster : Monster -> Model -> ( Model, Cmd Msg )
 updateGetMonster monster model =
     let
@@ -1408,6 +1427,7 @@ updateLeave model =
                 | mode = NotExploring
                 , activeSkills = []
                 , currentMap = Nothing
+                , encounteredTrap = Nothing
             }
     in
     ( newModel, Cmd.none )
@@ -1438,10 +1458,18 @@ updateGetExploreNode exploreNode model =
                 |> Maybe.map .monsterGenerator
                 |> Maybe.withDefault ( Random.constant nullMonster )
         
+        trapGenerator =
+            model.currentMap
+                |> Maybe.map .trapGenerator
+                |> Maybe.withDefault ( Random.constant nullTrap )
+        
         newCmd =
             case nextExploreNode of
                 MonsterNode ->
                     Random.generate GetMonster monsterGenerator
+                
+                TrapNode ->
+                    Random.generate GetTrap trapGenerator
                 
                 GoalNode ->
                     Cmd.batch
@@ -1537,6 +1565,15 @@ updateDoWork model =
     in
     ( newModel, Cmd.none )
 
+updateGetTrap : Trap -> Model -> ( Model, Cmd Msg )
+updateGetTrap trap model =
+    let
+        newModel =
+            { model
+                | encounteredTrap = Just trap
+            }
+    in
+    ( newModel, Cmd.none )
 -- SUBSCRIPTIONS
 
 subscriptions : Model -> Sub msg
