@@ -78,7 +78,7 @@ type Mode
 
 type ExploreNode
     = TerrainNode
-    | TrapNode Trap
+    | TrapNode
     | MonsterNode
     | TreasureNode TreasureQuality
     | SavePointNode
@@ -161,7 +161,7 @@ randomTable null all level =
                     )
                 )
                 |> sequenceRandom
-                |> Random.map (List.filter (\(rate,_) -> rate >= (1/256)))
+                |> Random.map (List.filter (\x -> x.weight >= (1/256)))
     in
     weightedListGenerator |> Random.andThen (\weightedList ->
     Random.constant <|
@@ -241,6 +241,7 @@ mapGenerator level =
         
         exploreNodeGeneratorGenerator genLv =
             let
+                distribution : Int -> Int -> a -> Random.Generator ( Float, a )
                 distribution lower upper node =
                     Random.int lower upper
                         |> Random.andThen (\freq -> Random.constant ( toFloat freq, node ))
@@ -249,29 +250,18 @@ mapGenerator level =
                     distribution 1 (1 + (genLv // 4)) SavePointNode
                 
                 otherExploreNodesDistributionGenerator =
-                    let
-                        trapNodeGenerator : Random.Generator ExploreNode
-                        trapNodeGenerator =
-                            Random.map TrapNode trapGenerator
-
-                        trapNodeDistributionGenerator : Random.Generator ( Float, ExploreNode )
-                        trapNodeDistributionGenerator =
-                            trapNodeGenerator |> Random.andThen (\trapNode ->
-                            distribution 2 (2 + genLv) trapNode
-                            )
-                    in
                     ( distribution 4 (4 + (genLv // 2)) TerrainNode ) |> Random.andThen (\terrainNodeDistribution ->
-                    trapNodeDistributionGenerator |> Random.andThen (\trapNodeDistribution ->
+                    ( distribution 2 (2 + genLv)) TrapNode |> Random.andThen (\trapNodeDistribution ->
                     ( distribution 6 (6 + genLv) MonsterNode ) |> Random.andThen (\monsterNodeDistribution ->
                     ( distribution 6 (6 + (genLv // 2)) (TreasureNode MinorTreasureQuality) ) |> Random.andThen (\minorTreasureNodeDistribution ->
                     ( distribution 2 (2 + (genLv // 4)) (TreasureNode MajorTreasureQuality) ) |> Random.andThen (\majorTreasureNodeDistribution ->
-                        Random.constant <|
-                            [ terrainNodeDistribution
-                            , trapNodeDistribution
-                            , monsterNodeDistribution
-                            , minorTreasureNodeDistribution
-                            , majorTreasureNodeDistribution
-                            ]
+                    Random.constant
+                        [ terrainNodeDistribution
+                        , trapNodeDistribution
+                        , monsterNodeDistribution
+                        , minorTreasureNodeDistribution
+                        , majorTreasureNodeDistribution
+                        ]
                     )))))
             in
             Random.map2 Random.weighted
@@ -338,8 +328,8 @@ exploreNodeToString exploreNode =
         TerrainNode ->
             "Terrain"
         
-        TrapNode trap ->
-            "Trap: " ++ trap.name
+        TrapNode ->
+            "Trap"
         
         MonsterNode ->
             "Monster"
@@ -834,9 +824,8 @@ viewExploring exploreNode model =
                         [ viewOption Leave "Leave"
                         ]
                 
-                TrapNode trap ->
+                TrapNode ->
                     [ viewOption Leave "Leave"
-                    , viewOption (SpringTrap trap) "Spring Trap"
                     ]
                 
                 MonsterNode ->
@@ -1385,6 +1374,9 @@ updateGetTreasure genNext treasure model =
                 
                 ArmorTreasure armor ->
                     { model | armors = armor :: model.armors }
+                
+                FurnitureTreasure furniture ->
+                    { model | furniture = furniture :: model.furniture }
     in
     ( newModel, nextCmd )
 
@@ -1483,7 +1475,7 @@ updateGetExploreNode exploreNode model =
                     else
                         [ "You find a dense grove of trees. You cannot proceed." ]
                 
-                TrapNode _ ->
+                TrapNode ->
                     [ "You sense danger..." ]
                 
                 TreasureNode MinorTreasureQuality ->
