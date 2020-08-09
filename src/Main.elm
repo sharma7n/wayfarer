@@ -114,12 +114,36 @@ sequenceRandom randoms =
         ( Random.constant [] )
         randoms
 
+type alias Weighted a =
+    { weight : Float
+    , value : a
+    }
+
+weightedToPair : Weighted a -> ( Float, a )
+weightedToPair wt =
+    ( wt.weight, wt.value )
+
 type alias LevelFreq a = { a | level : Int, frequency : Frequency }
 
-randomTable : LevelFreq a -> List ( LevelFreq a ) -> Int -> Random.Generator ( LevelFreq a )
+type alias NonEmptyList a =
+    { head : a
+    , tail : List a
+    }
+
+nonEmptyListToList : NonEmptyList a -> List a
+nonEmptyListToList ne =
+    ne.head :: ne.tail
+
+nonEmptyWeightedListToGenerator : NonEmptyList (Weighted a) -> Random.Generator a
+nonEmptyWeightedListToGenerator news =
+    Random.weighted
+        ( weightedToPair news.head )
+        ( List.map weightedToPair news.tail )
+
+randomTable : LevelFreq a -> List ( LevelFreq a ) -> Int -> Random.Generator (NonEmptyList (Weighted (LevelFreq a)))
 randomTable null all level =
     let
-        randomized =
+        weightedListGenerator =
             all
                 |> List.map (\o ->
                     let
@@ -130,18 +154,28 @@ randomTable null all level =
                 )
                 |> List.map (\(baseRate, o) ->
                     Random.float 0.5 1.5 |> Random.andThen (\genFloat ->
-                    Random.constant ( genFloat * baseRate, o )
+                    Random.constant <| 
+                        { weight = genFloat * baseRate
+                        , value = o
+                        }
                     )
                 )
                 |> sequenceRandom
                 |> Random.map (List.filter (\(rate,_) -> rate >= (1/256)))
     in
-    randomized |> Random.andThen (\content ->
-    Random.weighted
-        ( 0, null )
-        content
+    weightedListGenerator |> Random.andThen (\weightedList ->
+    Random.constant <|
+        { head =
+            { weight = 0
+            , value = null
+            }
+        , tail = weightedList
+        }
     )
 
+randomWeightedMap : Random.Generator a -> Float -> (a -> b) -> Random.Generator ( Float, b )
+randomWeightedMap gen w f =
+    gen |> Random.andThen (\g -> Random.constant ( w, f g ))
 
 mapGenerator : Int -> Random.Generator Map
 mapGenerator level =
@@ -169,20 +203,25 @@ mapGenerator level =
                 ( 0, null )
                 ( List.map (\t -> (1, t )) all )
         
+        trapGenerator : Random.Generator (NonEmptyList (Weighted Trap))
         trapGenerator =
             byLevel (randomTable nullTrap allTraps)
         
+        itemGenerator : Random.Generator (NonEmptyList (Weighted Item))
         itemGenerator =
-            tGenerator nullItem allItems
+            byLevel (randomTable nullItem allItems)
         
+        weaponGenerator : Random.Generator (NonEmptyList (Weighted Weapon))
         weaponGenerator =
-            tGenerator nullWeapon allWeapons
+            byLevel (randomTable nullWeapon allWeapons)
         
+        armorGenerator : Random.Generator (NonEmptyList (Weighted Armor))
         armorGenerator =
-            tGenerator nullArmor allArmors
+            byLevel (randomTable nullArmor allArmors)
         
+        furnitureGenerator : Random.Generator (NonEmptyList (Weighted Furniture))
         furnitureGenerator =
-            tGenerator nullFurniture allFurniture
+            byLevel (randomTable nullFurniture allFurniture)
         
         
         exploreNodeGeneratorGenerator genLv =
@@ -273,15 +312,25 @@ mapGenerator level =
             in
             Random.constant majorTreasureGenerator
         
-        goalTreasureGeneratorGenerator genLv =
+        goalTreasureGeneratorGenerator =
             let
-                goalTreasureGenerator =
-                    Random.weighted
-                        ( 1, WeaponTreasure { name = "Copper Knife", price = 10, frequency = Common, attackBonus = 1 } )
-                        [ ( 1, ArmorTreasure { name = "Leather Armor", price = 15, frequency = Common, defenseBonus = 1 } )
-                        ]
+                treasurify : (a -> Treasure) -> Random.Generator (NonEmptyList (Weighted a)) -> Random.Generator ( List (Float, Treasure ))
+                treasurify toTreasure nwGen =
+                    nwGen |> Random.map (\nw ->
+                        nonEmptyListToList nw
+                            |> List.map weightedToPair
+                            |> List.map (\(w,t) -> (w, toTreasure t))
+                    )
             in
-            Random.constant goalTreasureGenerator
+            Random.Extra.andThen2 Random.weighted
+                ( Random.constant ( 0, EmptyTreasure ) )
+                ( Random.map List.concat <|
+                  Random.Extra.sequence <|
+                    [ treasurify WeaponTreasure weaponGenerator
+                    , treasurify ArmorTreasure armorGenerator
+                    , treasurify FurnitureTreasure furnitureGenerator
+                    ]
+                )
     in
     Random.map Map ( byLevel nameGenerator )
         |> Random.Extra.andMap levelGenerator
@@ -290,7 +339,7 @@ mapGenerator level =
         |> Random.Extra.andMap ( byLevel monsterGeneratorGenerator )
         |> Random.Extra.andMap ( byLevel minorTreasureGeneratorGenerator )
         |> Random.Extra.andMap ( byLevel majorTreasureGeneratorGenerator )
-        |> Random.Extra.andMap ( byLevel goalTreasureGeneratorGenerator )
+        |> Random.Extra.andMap ( Random.constant goalTreasureGeneratorGenerator )
 
 exploreNodeToString : ExploreNode -> String
 exploreNodeToString exploreNode =
@@ -460,6 +509,7 @@ allMonsters =
 
 type alias Item =
     { name : String
+    , level : Int
     , price : Int
     , frequency : Frequency
     , healAmount : Int
@@ -467,9 +517,10 @@ type alias Item =
     , antidoteAmount : Int
     }
 
-newItem : String -> Int -> Item
-newItem name price =
+newItem : String -> Int -> Int -> Item
+newItem name level price =
     { name = name
+    , level = level
     , price = price
     , frequency = Common
     , healAmount = 0
@@ -479,16 +530,36 @@ newItem name price =
 
 type alias Weapon =
     { name : String
+    , level : Int
     , price : Int
     , frequency : Frequency
     , attackBonus : Int
     }
 
+newWeapon : String -> Int -> Int -> Weapon
+newWeapon name level price =
+    { name = name
+    , level = level
+    , price = price
+    , frequency = Common
+    , attackBonus = 0
+    }
+
 type alias Armor =
     { name : String
+    , level : Int
     , price : Int
     , frequency : Frequency
     , defenseBonus : Int
+    }
+
+newArmor : String -> Int -> Int -> Armor
+newArmor name level price =
+    { name = name
+    , level = level
+    , price = price
+    , frequency = Common
+    , defenseBonus = 0
     }
 
 type Object
@@ -499,54 +570,58 @@ type Object
 
 nullItem : Item
 nullItem =
-    newItem "Null Item" 0
+    newItem "Null Item" 0 0
 
 allItems : List Item
 allItems =
-    [ let i = newItem "Buttermilk Old-Fashioned Donut" 6 in { i | healAmount = 1}
-    , let i = newItem "Antidote" 4 in { i | antidoteAmount = 1 }
-    , let i = newItem "Escape Rope" 8 in { i | escapeFromDungeon = True }
+    [ let i = newItem "Buttermilk Old-Fashioned Donut" 1 6 in { i | healAmount = 1}
+    , let i = newItem "Antidote" 1 4 in { i | antidoteAmount = 1 }
+    , let i = newItem "Escape Rope" 1 8 in { i | escapeFromDungeon = True }
     ]
 
 nullWeapon : Weapon
 nullWeapon =
-    { name = "Null Weapon", price = 0, frequency = Common, attackBonus = 0 }
+    newWeapon "Null Weapon" 0 0
 
 allWeapons : List Weapon
 allWeapons =
-    [ { name = "Copper Knife", price = 10, frequency = Common, attackBonus = 1 }
-    , { name = "Stone Axe", price = 60, frequency = Uncommon, attackBonus = 3 }
+    [ let w = newWeapon "Copper Knife" 1 10 in { w | attackBonus = 1 }
+    , let w = newWeapon "Stone Axxe" 1 60 in { w | attackBonus = 3, frequency = Uncommon }
     ]
 
 nullArmor : Armor
 nullArmor =
-    { name = "Null Armor", price = 0, frequency = Common, defenseBonus = 0 }
+    newArmor "Null Armor" 0 0
 
 allArmors : List Armor
 allArmors =
-    [ { name = "Leather Armor", price = 15, frequency = Common, defenseBonus = 1 }
+    [ let a = newArmor "Leather Armor" 1 15 in { a | defenseBonus = 1 }
     ]
 
 type alias Furniture =
     { name : String
+    , level : Int
     , price : Int
+    , frequency : Frequency
     , healAmount : Int
     }
 
-newFurniture : String -> Int -> Furniture
-newFurniture name price =
+newFurniture : String -> Int -> Int -> Furniture
+newFurniture name level price =
     { name = name
+    , level = level
     , price = price
+    , frequency = Common
     , healAmount = 0
     }
 
 nullFurniture : Furniture
 nullFurniture =
-    newFurniture "Null Furniture" 0
+    newFurniture "Null Furniture" 0 0
 
 allFurniture : List Furniture
 allFurniture =
-    [ let f = newFurniture "Heal Pillow" 25 in { f | healAmount = 1 }
+    [ let f = newFurniture "Heal Pillow" 1 25 in { f | healAmount = 1 }
     ]
 
 allObjects : List Object
@@ -565,6 +640,7 @@ type Treasure
     | ItemTreasure Item
     | WeaponTreasure Weapon
     | ArmorTreasure Armor
+    | FurnitureTreasure Furniture
 
 allTreasures : List Treasure
 allTreasures =
