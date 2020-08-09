@@ -107,11 +107,52 @@ minWeight : Float
 minWeight =
     1 / 256
 
+sequenceRandom : List ( Random.Generator a ) -> Random.Generator ( List a )
+sequenceRandom randoms =
+    List.foldr
+        ( Random.map2 (::) )
+        ( Random.constant [] )
+        randoms
+
+type alias LevelFreq a = { a | level : Int, frequency : Frequency }
+
+randomTable : LevelFreq a -> List ( LevelFreq a ) -> Int -> Random.Generator ( LevelFreq a )
+randomTable null all level =
+    let
+        randomized =
+            all
+                |> List.map (\o ->
+                    let
+                        suitability = 1 / ( (toFloat (o.level - level)^2) + 1  )
+                        baseRate = suitability * (frequencyToFloat o.frequency)
+                    in
+                    ( baseRate, o )
+                )
+                |> List.map (\(baseRate, o) ->
+                    Random.float 0.5 1.5 |> Random.andThen (\genFloat ->
+                    Random.constant ( genFloat * baseRate, o )
+                    )
+                )
+                |> sequenceRandom
+                |> Random.map (List.filter (\(rate,_) -> rate >= (1/256)))
+    in
+    randomized |> Random.andThen (\content ->
+    Random.weighted
+        ( 0, null )
+        content
+    )
+
+
 mapGenerator : Int -> Random.Generator Map
 mapGenerator level =
     let
         levelGenerator =
             Random.int (level + 1) (round ((toFloat level) * 1.5) + 1)
+        
+        goldGenerator =
+            levelGenerator |> Random.andThen (\genLv ->
+                Random.int genLv (genLv * 2)
+            )
         
         byLevel generator =
             levelGenerator
@@ -128,13 +169,9 @@ mapGenerator level =
                 ( 0, null )
                 ( List.map (\t -> (1, t )) all )
         
-        trapGeneratorGenerator genLv =
-
-            tGenerator nullTrap allTraps
-        
         trapGenerator =
-            tGenerator nullTrap allTraps
-
+            byLevel (randomTable nullTrap allTraps)
+        
         itemGenerator =
             tGenerator nullItem allItems
         
@@ -200,31 +237,27 @@ mapGenerator level =
                         monsterDistributionList
             in
             Random.constant monsterGenerator
-        
-        trapGeneratorGenerator genLv =
-            let
-                trapDistributionList =
-                    allTraps
-                        |> List.map (\t -> ( weight t genLv, t ))
-                        |> List.filter (\(r, _) -> (r >= minWeight))
-                
-                trapGenerator =
-                    Random.weighted
-                        ( 0, nullTrap )
-                        trapDistributionList
-            in
-            Random.constant trapGenerator
 
         minorTreasureGeneratorGenerator genLv =
             let
+                trapTreasureGenerator =
+                    Random.map TrapTreasure trapGenerator
+                
+                goldTreasureGenerator =
+                    Random.map GoldTreasure goldGenerator
+                
                 minorTreasureGenerator =
+                    trapTreasureGenerator |> Random.andThen (\trapTreasure ->
+                    goldTreasureGenerator |> Random.andThen (\goldTreasure ->
                     Random.weighted
-                        ( 1, TrapTreasure (let t = newTrap "Arrow Trap" 1 in { t | damage = 1 }) )
+                        ( 1, trapTreasure )
                         [ ( 3, EmptyTreasure )
-                        , ( 1, GoldTreasure 1 )
+                        , ( 1, goldTreasure )
                         , ( 1, ItemTreasure (let i = newItem "Buttermilk Old-Fashioned Donut" 6 in { i | healAmount = 1}) )
                         ]
+                    ))
             in
+
             Random.constant minorTreasureGenerator
         
         majorTreasureGeneratorGenerator genLv =
