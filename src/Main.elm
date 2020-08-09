@@ -417,11 +417,11 @@ nullMonster : Monster
 nullMonster =
     newMonster "Null Monster" 0
 
-bossPigeon : Monster
-bossPigeon =
+bossSlime : Monster
+bossSlime =
     { level = 2
     , frequency = Legendary
-    , name = "Boss Pigeon"
+    , name = "Boss Slime"
     , attack = 8
     , defense = 2
     , agility = 1
@@ -517,7 +517,7 @@ nullWeapon =
 allWeapons : List Weapon
 allWeapons =
     [ let w = newWeapon "Copper Knife" 1 10 in { w | attackBonus = 1 }
-    , let w = newWeapon "Stone Axxe" 1 60 in { w | attackBonus = 3, frequency = Uncommon }
+    , let w = newWeapon "Stone Axe" 1 60 in { w | attackBonus = 3, frequency = Uncommon }
     ]
 
 nullArmor : Armor
@@ -923,7 +923,7 @@ viewNotExploring model =
         [ Html.li [] [ Html.button [ Html.Events.onClick Inn ] [ Html.text <| "Rest" ] ]
         , Html.li []
             ( List.map (\map -> Html.button [ Html.Events.onClick <| Explore map ] [ Html.text <| "Explore: " ++ map.name ]) model.maps )
-        , Html.li [] [ Html.button [ Html.Events.onClick (BossFight bossPigeon) ] [ Html.text <| "Fight Boss Pigeon" ] ]
+        , Html.li [] [ Html.button [ Html.Events.onClick (BossFight bossSlime) ] [ Html.text <| "Fight Boss Slime" ] ]
         , Html.li [] [ Html.button [ Html.Events.onClick DoWork ] [ Html.text <| "Do Work" ] ]
         ]
         ++ (List.map (\item -> Html.li [] [ Html.button [ Html.Events.onClick <| BuyItem item ] [ Html.text <| "Buy: " ++ item.name ++ " (" ++ String.fromInt item.price ++ " G)" ] ]) allItems)
