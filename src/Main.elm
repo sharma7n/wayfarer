@@ -432,11 +432,14 @@ bossSlime =
 
 allMonsters =
     [ let m = newMonster "Slime" 1 in { m | attack = 1, defense = 1, expYield = 1, goldYield = 1 }
+    , let m = newMonster "Beastie" 1 in { m | attack = 2, defense = 1, expYield = 2, goldYield = 1 }
     , let m = newMonster "Owl" 1 in { m | frequency = Uncommon, attack = 1, defense = 2, expYield = 1, goldYield = 2 }
     , let m = newMonster "Snake" 2 in { m | attack = 1, defense = 1, expYield = 2, goldYield = 2, poison = 1 }
     , let m = newMonster "Wolf" 2 in { m | attack = 3, defense = 3, expYield = 3, goldYield = 3 }
     , let m = newMonster "Bear" 3 in { m | attack = 7, defense = 5, expYield = 6, goldYield = 6 }
     ]
+
+-- ITEM
 
 type alias Item =
     { name : String
@@ -459,6 +462,19 @@ newItem name level price =
     , antidoteAmount = 0
     }
 
+nullItem : Item
+nullItem =
+    newItem "Null Item" 0 0
+
+allItems : List Item
+allItems =
+    [ let i = newItem "Buttermilk Old-Fashioned Donut" 1 6 in { i | healAmount = 1}
+    , let i = newItem "Antidote" 1 4 in { i | antidoteAmount = 1 }
+    , let i = newItem "Escape Rope" 1 8 in { i | escapeFromDungeon = True }
+    ]
+
+-- WEAPON
+
 type alias Weapon =
     { name : String
     , level : Int
@@ -475,6 +491,18 @@ newWeapon name level price =
     , frequency = Common
     , attackBonus = 0
     }
+
+nullWeapon : Weapon
+nullWeapon =
+    newWeapon "Null Weapon" 0 0
+
+allWeapons : List Weapon
+allWeapons =
+    [ let w = newWeapon "Copper Knife" 1 10 in { w | attackBonus = 1 }
+    , let w = newWeapon "Stone Axe" 1 60 in { w | attackBonus = 3, frequency = Uncommon }
+    ]
+
+-- ARMOR
 
 type alias Armor =
     { name : String
@@ -493,33 +521,6 @@ newArmor name level price =
     , defenseBonus = 0
     }
 
-type Object
-    = ItemObject Item
-    | WeaponObject Weapon
-    | ArmorObject Armor
-    | FurnitureObject Furniture
-
-nullItem : Item
-nullItem =
-    newItem "Null Item" 0 0
-
-allItems : List Item
-allItems =
-    [ let i = newItem "Buttermilk Old-Fashioned Donut" 1 6 in { i | healAmount = 1}
-    , let i = newItem "Antidote" 1 4 in { i | antidoteAmount = 1 }
-    , let i = newItem "Escape Rope" 1 8 in { i | escapeFromDungeon = True }
-    ]
-
-nullWeapon : Weapon
-nullWeapon =
-    newWeapon "Null Weapon" 0 0
-
-allWeapons : List Weapon
-allWeapons =
-    [ let w = newWeapon "Copper Knife" 1 10 in { w | attackBonus = 1 }
-    , let w = newWeapon "Stone Axe" 1 60 in { w | attackBonus = 3, frequency = Uncommon }
-    ]
-
 nullArmor : Armor
 nullArmor =
     newArmor "Null Armor" 0 0
@@ -528,6 +529,8 @@ allArmors : List Armor
 allArmors =
     [ let a = newArmor "Leather Armor" 1 15 in { a | defenseBonus = 1 }
     ]
+
+-- FURNITURE
 
 type alias Furniture =
     { name : String
@@ -555,6 +558,14 @@ allFurniture =
     [ let f = newFurniture "Heal Pillow" 1 25 in { f | healAmount = 1 }
     ]
 
+-- OBJECT
+
+type Object
+    = ItemObject Item
+    | WeaponObject Weapon
+    | ArmorObject Armor
+    | FurnitureObject Furniture
+
 allObjects : List Object
 allObjects =
     List.concat
@@ -563,6 +574,8 @@ allObjects =
         , List.map ArmorObject allArmors
         , List.map FurnitureObject allFurniture
         ]
+
+-- TREASURE
 
 type Treasure
     = TrapTreasure Trap
@@ -588,12 +601,29 @@ type alias Skill =
     { name : String
     , learnCost : Int
     , mpCost : Int
+    , skillContext : SkillContext
     , forestWalkEffect : Bool
+    , damage : Int
+    }
+
+type SkillContext
+    = ExploreSkill
+    | BattleSkill
+
+newSkill : String -> Int -> Int -> SkillContext -> Skill
+newSkill name learnCost mpCost skillContext =
+    { name = name
+    , learnCost = learnCost
+    , mpCost = mpCost
+    , skillContext = skillContext
+    , forestWalkEffect = False
+    , damage = 0
     }
 
 allSkills : List Skill
 allSkills =
-    [ { name = "Forest Walk", learnCost = 2, mpCost = 1, forestWalkEffect = True }
+    [ let s = newSkill "Forest Walk" 2 1 ExploreSkill in { s | forestWalkEffect = True }
+    , let s = newSkill "Fire" 1 1 BattleSkill in { s | damage = 1 }
     ]
 
 type alias Passive =
@@ -625,6 +655,8 @@ allPassives =
     , let p = newPassive "AGI +1" 10 in { p | agilityBonus = 1 }
     ]
 
+-- TRAP
+
 type alias Trap =
     { name : String
     , level : Int
@@ -651,6 +683,8 @@ allTraps =
     [ let t = newTrap "Arrow Trap" 1 in { t | damage = 1 }
     , let t = newTrap "Poison Trap" 2 in { t | poison = 1 }
     ]
+
+-- MAIN
 
 main : Program () Model Msg
 main =
@@ -1310,7 +1344,8 @@ updateLearnPassive passive model =
     in
     ( newModel, Cmd.none )
 
-updateUseSkill : Skill -> Model -> ( Model, Cmd Msg )
+
+                  Skill -> Model -> ( Model, Cmd Msg )
 updateUseSkill skill model =
     let
         condition = model.magicPoints >= skill.mpCost
@@ -1319,16 +1354,23 @@ updateUseSkill skill model =
             if condition then
                 skill :: model.activeSkills
             else
-                model.activeSkills
-        newModel =
-            { model
-                | magicPoints = model.magicPoints - magicCost
-                , activeSkills = newActiveSkills
-            }
-    in
-    ( newModel, Cmd.none )
 
-updateBuyArmor : Armor -> Model -> ( Model, Cmd Msg )
+
+
+
+
+
+
+ tsoCcigam - stnioPcigam.
+                    ledom = stnioPcigam ,                            activeSkillsevitca.ledom : : lliks = sllikSevitca |                             ledom                             
+                         {}                        
+
+
+
+ tsoCcigam - stnioPcigam.
+            ledom = stnioPcigam ,                            )encounteredMonsteruocne.ledom/;edp,  egamad.lliks - esnefed.m = esnefed | m {} >- m\() pam.ebyaM = encounteredMonsternuocne |                            
+                         ledom {}   
+                     updateBuyArmor : Armor -> Model -> ( Model, Cmd Msg )
 updateBuyArmor armor model =
     let
         paid = if model.gold >= armor.price then armor.price else 0
@@ -1574,6 +1616,7 @@ updateGetTrap trap model =
             }
     in
     ( newModel, Cmd.none )
+
 -- SUBSCRIPTIONS
 
 subscriptions : Model -> Sub msg
