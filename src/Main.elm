@@ -13,6 +13,7 @@ type alias Model =
     , day : Int
     , maxTime : Int
     , time : Int
+    , class : Class
     , level : Int
     , totalExperience : Int
     , experience : Int
@@ -72,6 +73,33 @@ type Msg
     | DoWork
     | BuyFurniture Furniture
     | GetTrap Trap
+    | ChangeClass Class
+
+-- CLASS
+
+type Class
+    = Commoner
+    | Fighter
+    | Mage
+
+classToString : Class -> String
+classToString class =
+    case class of
+        Commoner ->
+            "Commoner"
+        
+        Fighter ->
+            "Fighter"
+        
+        Mage ->
+            "Mage"
+
+allClasses : List Class
+allClasses =
+    [ Commoner
+    , Fighter
+    , Mage
+    ]
 
 type Mode
     = Exploring ExploreNode
@@ -623,7 +651,7 @@ newSkill name learnCost mpCost skillContext =
 allSkills : List Skill
 allSkills =
     [ let s = newSkill "Forest Walk" 2 1 ExploreSkill in { s | forestWalkEffect = True }
-    , let s = newSkill "Fire" 1 1 BattleSkill in { s | damage = 1 }
+    , let s = newSkill "Fire" 5 1 BattleSkill in { s | damage = 1 }
     ]
 
 type alias Passive =
@@ -680,8 +708,8 @@ nullTrap =
 
 allTraps : List Trap
 allTraps =
-    [ let t = newTrap "Arrow Trap" 1 in { t | damage = 1 }
-    , let t = newTrap "Poison Trap" 2 in { t | poison = 1 }
+    [ let t = newTrap "Arrow Trap" 3 in { t | damage = 1 }
+    , let t = newTrap "Poison Trap" 3 in { t | poison = 1 }
     ]
 
 -- MAIN
@@ -706,6 +734,7 @@ init _ =
             , day = 1
             , maxTime = 3
             , time = 3
+            , class = Commoner
             , level = 1
             , totalExperience = 0
             , experience = 0
@@ -751,6 +780,7 @@ view model =
         [ Html.li [] [ Html.text <| "Residence: " ++ model.residence ]
         , Html.li [] [ Html.text <| "Day: " ++ String.fromInt model.day ]
         , Html.li [] [ Html.text <| "Time: " ++ String.fromInt model.time ++ " / " ++ String.fromInt model.maxTime ]
+        , Html.li [] [ Html.text <| "Class: " ++ classToString model.class ]
         , Html.li [] [ Html.text <| "Level: " ++ String.fromInt model.level ]
         , Html.li [] [ Html.text <| "EXP: " ++ String.fromInt model.experience ++ " / " ++ String.fromInt model.totalExperience ++ " / " ++ String.fromInt (model.level * model.level * 10) ]
         , Html.li [] [ Html.text <| "HP: " ++ String.fromInt model.hitPoints ++ " / " ++ String.fromInt model.maxHitPoints ]
@@ -966,6 +996,7 @@ viewNotExploring model =
         ++ (List.map (\armor -> Html.li [] [ Html.button [ Html.Events.onClick <| BuyArmor armor ] [ Html.text <| "Buy: " ++ armor.name ++ " (" ++ String.fromInt armor.price ++ " G)" ] ]) allArmors)
         ++ (List.map (\skill -> Html.li [] [ Html.button [ Html.Events.onClick <| LearnSkill skill ] [ Html.text <| "Learn: " ++ skill.name ++ " (" ++ String.fromInt skill.learnCost ++ " EXP)" ] ]) allSkills)
         ++ (List.map (\passive -> Html.li [] [ Html.button [ Html.Events.onClick <| LearnPassive passive ] [ Html.text <| "Learn: " ++ passive.name ++ " (" ++ String.fromInt passive.learnCost ++ " EXP)" ] ]) allPassives)
+        ++ (List.map (\class -> Html.li [] [ Html.button [ Html.Events.onClick <| ChangeClass class ] [ Html.text <| "Change Class: " ++ classToString class ] ])  allClasses )
         )
 
 equippedWeaponActions : Maybe Weapon -> List (Html.Attribute Msg)
@@ -1077,6 +1108,9 @@ update msg model =
         
         ( DoWork, NotExploring ) ->
             updateDoWork model
+        
+        ( ChangeClass class, _ ) ->
+            updateChangeClass class model
         
         _ ->
             ( model, Cmd.none )
@@ -1615,6 +1649,16 @@ updateGetTrap trap model =
         newModel =
             { model
                 | encounteredTrap = Just trap
+            }
+    in
+    ( newModel, Cmd.none )
+
+updateChangeClass : Class -> Model -> ( Model, Cmd Msg )
+updateChangeClass class model =
+    let
+        newModel =
+            { model
+                | class = class
             }
     in
     ( newModel, Cmd.none )
