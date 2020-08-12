@@ -1350,10 +1350,8 @@ updateUseSkill skill model =
     let
         condition = model.magicPoints >= skill.mpCost
         magicCost = if condition then skill.mpCost else 0
-        newActiveSkills =
+        newModel =
             if condition then
-                skill :: model.activeSkills
-            else
                 case skill.skillContext of
                     ExploreSkill ->
                         { model
@@ -1363,6 +1361,10 @@ updateUseSkill skill model =
                     
                     BattleSkill ->
                         model
+            else
+                model
+    in
+    ( newModel, Cmd.none )
                      
 updateBuyArmor : Armor -> Model -> ( Model, Cmd Msg )
 updateBuyArmor armor model =
