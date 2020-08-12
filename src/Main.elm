@@ -905,6 +905,7 @@ viewExploring exploreNode model =
                         Just trap ->
                             Html.ul []
                                 [ Html.li [] [ Html.text <| "Name: " ++ trap.name ]
+                                , Html.li [] [ Html.text <| "Level: " ++ String.fromInt trap.level ]
                                 , Html.li [] [ Html.text <| "Damage: " ++ String.fromInt trap.damage ]
                                 , if trap.poison > 0 then
                                     Html.li [] [ Html.text <| "Poison: " ++ String.fromInt trap.poison ]
