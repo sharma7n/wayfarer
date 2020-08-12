@@ -371,8 +371,8 @@ type alias Monster =
     { level : Int
     , frequency : Frequency
     , name : String
+    , hitPoints : Int
     , attack : Int
-    , defense : Int
     , agility : Int
     , expYield : Int
     , goldYield : Int
@@ -400,13 +400,13 @@ frequencyToFloat freq =
         Legendary ->
             1 / 64
 
-newMonster : String -> Int -> Monster
-newMonster name level =
+newMonster : String -> Int -> Int -> Monster
+newMonster name level hitPoints =
     { level = level
     , frequency = Common
     , name = name
+    , hitPoints = hitPoints
     , attack = 0
-    , defense = 0
     , agility = 0
     , expYield = 0
     , goldYield = 0
@@ -415,15 +415,15 @@ newMonster name level =
 
 nullMonster : Monster
 nullMonster =
-    newMonster "Null Monster" 0
+    newMonster "Null Monster" 0 0
 
 bossSlime : Monster
 bossSlime =
     { level = 2
     , frequency = Legendary
     , name = "Boss Slime"
+    , hitPoints = 2
     , attack = 8
-    , defense = 2
     , agility = 1
     , expYield = 10
     , goldYield = 10
@@ -431,12 +431,12 @@ bossSlime =
     }
 
 allMonsters =
-    [ let m = newMonster "Slime" 1 in { m | attack = 1, defense = 1, expYield = 1, goldYield = 1 }
-    , let m = newMonster "Beastie" 1 in { m | attack = 2, defense = 1, expYield = 2, goldYield = 1 }
-    , let m = newMonster "Owl" 1 in { m | frequency = Uncommon, attack = 1, defense = 2, expYield = 1, goldYield = 2 }
-    , let m = newMonster "Snake" 2 in { m | attack = 1, defense = 1, expYield = 2, goldYield = 2, poison = 1 }
-    , let m = newMonster "Wolf" 2 in { m | attack = 3, defense = 3, expYield = 3, goldYield = 3 }
-    , let m = newMonster "Bear" 3 in { m | attack = 7, defense = 5, expYield = 6, goldYield = 6 }
+    [ let m = newMonster "Slime" 1 1 in { m | attack = 1, expYield = 1, goldYield = 1 }
+    , let m = newMonster "Beastie" 1 2 in { m | attack = 2, expYield = 2, goldYield = 1 }
+    , let m = newMonster "Owl" 1 2 in { m | frequency = Uncommon, attack = 1, expYield = 1, goldYield = 2 }
+    , let m = newMonster "Snake" 2 1 in { m | attack = 1, expYield = 2, goldYield = 2, poison = 1 }
+    , let m = newMonster "Wolf" 2 3 in { m | attack = 3, expYield = 3, goldYield = 3 }
+    , let m = newMonster "Bear" 3 5 in { m | attack = 7, expYield = 6, goldYield = 6 }
     ]
 
 -- ITEM
@@ -893,8 +893,8 @@ viewExploring exploreNode model =
                         Just monster ->
                             Html.ul []
                                 [ Html.li [] [ Html.text <| "Name: " ++ monster.name ]
+                                , Html.li [] [ Html.text <| "Hit Points: " ++ String.fromInt monster.hitPoints ]
                                 , Html.li [] [ Html.text <| "Attack: " ++ String.fromInt monster.attack ]
-                                , Html.li [] [ Html.text <| "Defense: " ++ String.fromInt monster.defense ]
                                 , if monster.poison > 0 then
                                         Html.li [] [ Html.text <| "Poison: " ++ String.fromInt monster.poison ]
                                   else
@@ -1033,7 +1033,7 @@ update msg model =
         ( LearnPassive passive, _ ) ->
             updateLearnPassive passive model
         
-        ( UseSkill skill, Exploring _ ) ->
+        ( UseSkill skill, _ ) ->
             updateUseSkill skill model
         
         ( BuyArmor armor, NotExploring ) ->
@@ -1134,7 +1134,7 @@ updateBossFight : Monster -> Model -> ( Model, Cmd Msg )
 updateBossFight monster model =
     let
         damage = max (monster.attack - model.defense) 0
-        win = model.attack >= monster.defense
+        win = model.attack >= monster.hitPoints
         goldGain = if win then monster.goldYield else 0
         expGainer = if win then updateExpGain monster.expYield else \m -> m 
         
@@ -1156,8 +1156,8 @@ updateFight model =
                 Just monster ->
                     let
                         damage = max (monster.attack - model.defense) 0
-                        win = model.attack >= monster.defense
-                        goldGain = if model.attack >= monster.defense then monster.goldYield else 0
+                        win = model.attack >= monster.hitPoints
+                        goldGain = if win then monster.goldYield else 0
                         expGainer = if win then updateExpGain monster.expYield else \m -> m
                     in
                     { model
@@ -1352,14 +1352,20 @@ updateUseSkill skill model =
         magicCost = if condition then skill.mpCost else 0
         newModel =
             if condition then
-                case skill.skillContext of
-                    ExploreSkill ->
+                case ( skill.skillContext, model.mode ) of
+                    ( ExploreSkill, _ ) ->
                         { model
                             | activeSkills = skill :: model.activeSkills
                             , magicPoints = model.magicPoints - skill.mpCost
                         }
                     
-                    BattleSkill ->
+                    ( BattleSkill, Exploring MonsterNode ) ->
+                        { model
+                            | magicPoints = model.magicPoints - skill.mpCost
+                            , encounteredMonster = Maybe.map (\m -> { m | hitPoints = max 0 (m.hitPoints - skill.damage)}) model.encounteredMonster
+                        }
+                    
+                    _ ->
                         model
             else
                 model
