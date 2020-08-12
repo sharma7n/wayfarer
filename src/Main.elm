@@ -1345,7 +1345,7 @@ updateLearnPassive passive model =
     ( newModel, Cmd.none )
 
 
-                  Skill -> Model -> ( Model, Cmd Msg )
+updateUseSkill : Skill -> Model -> ( Model, Cmd Msg )
 updateUseSkill skill model =
     let
         condition = model.magicPoints >= skill.mpCost
@@ -1354,23 +1354,17 @@ updateUseSkill skill model =
             if condition then
                 skill :: model.activeSkills
             else
-
-
-
-
-
-
-
- tsoCcigam - stnioPcigam.
-                    ledom = stnioPcigam ,                            activeSkillsevitca.ledom : : lliks = sllikSevitca |                             ledom                             
-                         {}                        
-
-
-
- tsoCcigam - stnioPcigam.
-            ledom = stnioPcigam ,                            )encounteredMonsteruocne.ledom/;edp,  egamad.lliks - esnefed.m = esnefed | m {} >- m\() pam.ebyaM = encounteredMonsternuocne |                            
-                         ledom {}   
-                     updateBuyArmor : Armor -> Model -> ( Model, Cmd Msg )
+                case skill.skillContext of
+                    ExploreSkill ->
+                        { model
+                            | activeSkills = skill :: model.activeSkills
+                            , magicPoints = model.magicPoints - skill.mpCost
+                        }
+                    
+                    BattleSkill ->
+                        model
+                     
+updateBuyArmor : Armor -> Model -> ( Model, Cmd Msg )
 updateBuyArmor armor model =
     let
         paid = if model.gold >= armor.price then armor.price else 0
