@@ -22,6 +22,7 @@ type alias Model =
     , maxMagicPoints : Int
     , magicPoints : Int
     , attack : Int
+    , magic : Int
     , defense : Int
     , agility : Int
     , gold : Int
@@ -751,6 +752,7 @@ init _ =
             , maxMagicPoints = 1
             , magicPoints = 1
             , attack = 1
+            , magic = 1
             , defense = 0
             , agility = 1
             , gold = 0
@@ -799,6 +801,7 @@ view model =
           )
         , Html.li [] [ Html.text <| "MP: " ++ String.fromInt model.magicPoints ++ " / " ++ String.fromInt model.maxMagicPoints ]
         , Html.li [] [ Html.text <| "ATK: " ++ String.fromInt model.attack ]
+        , Html.li [] [ Html.text <| "MAG: " ++ String.fromInt model.magic ]
         , Html.li [] [ Html.text <| "DEF: " ++ String.fromInt model.defense ]
         , Html.li [] [ Html.text <| "AGI: " ++ String.fromInt model.agility ]
         , Html.li [] [ Html.text <| "Gold: " ++ String.fromInt model.gold ]
@@ -1464,15 +1467,16 @@ updateUseSkill skill model =
                         case model.encounteredMonster of
                             Just monster ->
                                 let
+                                    totalDamage = skill.damage * model.magic
                                     win =
-                                        monster.hitPoints <= skill.damage
+                                        monster.hitPoints <= totalDamage
                                     goldGain = if win then monster.goldYield else 0
                                     expGainer = if win then updateExpGain monster.expYield else \m -> m
                                     nextMonster =
                                         if win then
                                             Nothing
                                         else
-                                            Just { monster | hitPoints = max (monster.hitPoints - skill.damage) 0 }
+                                            Just { monster | hitPoints = max (monster.hitPoints - totalDamage) 0 }
                                     nextModel =
                                         { model
                                             | encounteredMonster = nextMonster
