@@ -1121,6 +1121,9 @@ update msg model =
         ( ChangeClass class, _ ) ->
             updateChangeClass class model
         
+        ( BuyFurniture furniture, _ ) ->
+            updateBuyFurniture furniture model
+        
         _ ->
             ( model, Cmd.none )
 
@@ -1745,6 +1748,21 @@ updateChangeClass class model =
             { model
                 | class = class
             }
+    in
+    ( newModel, Cmd.none )
+
+updateBuyFurniture : Furniture -> Model -> ( Model, Cmd Msg )
+updateBuyFurniture furniture model =
+    let
+        condition = model.gold >= furniture.price
+        newModel =
+            if condition then
+                { model
+                    | gold = model.gold - furniture.price
+                    , furniture = furniture :: model.furniture
+                }
+            else
+                model
     in
     ( newModel, Cmd.none )
 
