@@ -629,30 +629,32 @@ type alias Skill =
     { name : String
     , learnCost : Int
     , mpCost : Int
-    , skillContext : SkillContext
+    , context : Context
     , forestWalkEffect : Bool
     , damage : Int
     }
 
-type SkillContext
-    = ExploreSkill
-    | BattleSkill
+type Context
+    = ExploreContext
+    | BattleContext
 
-newSkill : String -> Int -> Int -> SkillContext -> Skill
+newSkill : String -> Int -> Int -> Context -> Skill
 newSkill name learnCost mpCost skillContext =
     { name = name
     , learnCost = learnCost
     , mpCost = mpCost
-    , skillContext = skillContext
+    , context = skillContext
     , forestWalkEffect = False
     , damage = 0
     }
 
 allSkills : List Skill
 allSkills =
-    [ let s = newSkill "Forest Walk" 1 1 ExploreSkill in { s | forestWalkEffect = True }
-    , let s = newSkill "Fire" 1 1 BattleSkill in { s | damage = 1 }
+    [ let s = newSkill "Forest Walk" 1 1 ExploreContext in { s | forestWalkEffect = True }
+    , let s = newSkill "Fire" 1 1 BattleContext in { s | damage = 1 }
     ]
+
+-- PASSIVE
 
 type alias Passive =
     { name : String
@@ -1387,8 +1389,8 @@ updateUseSkill skill model =
         magicCost = if condition then skill.mpCost else 0
         ( newModel, newCmd ) =
             if condition then
-                case ( skill.skillContext, model.mode ) of
-                    ( ExploreSkill, _ ) ->
+                case ( skill.context, model.mode ) of
+                    ( ExploreContext, _ ) ->
                         let
                             nextModel =
                                 { model
@@ -1398,7 +1400,7 @@ updateUseSkill skill model =
                         in
                         ( nextModel, Cmd.none )
                     
-                    ( BattleSkill, Exploring MonsterNode ) ->
+                    ( BattleContext, Exploring MonsterNode ) ->
                         case model.encounteredMonster of
                             Just monster ->
                                 let
