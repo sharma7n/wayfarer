@@ -496,9 +496,9 @@ nullItem =
 
 allItems : List Item
 allItems =
-    [ let i = newItem "Buttermilk Old-Fashioned Donut" 1 6 in { i | healAmount = 1}
-    , let i = newItem "Antidote" 1 4 in { i | antidoteAmount = 1 }
-    , let i = newItem "Escape Rope" 1 8 in { i | escapeFromDungeon = True }
+    [ let i = newItem "Buttermilk Old-Fashioned Donut" 1 1 in { i | healAmount = 1}
+    , let i = newItem "Antidote" 1 1 in { i | antidoteAmount = 1 }
+    , let i = newItem "Escape Rope" 1 1 in { i | escapeFromDungeon = True }
     ]
 
 -- WEAPON
@@ -526,8 +526,8 @@ nullWeapon =
 
 allWeapons : List Weapon
 allWeapons =
-    [ let w = newWeapon "Copper Knife" 1 10 in { w | attackBonus = 1 }
-    , let w = newWeapon "Stone Axe" 1 60 in { w | attackBonus = 3, frequency = Uncommon }
+    [ let w = newWeapon "Copper Knife" 1 1 in { w | attackBonus = 1 }
+    , let w = newWeapon "Stone Axe" 1 1 in { w | attackBonus = 3, frequency = Uncommon }
     ]
 
 -- ARMOR
@@ -555,7 +555,7 @@ nullArmor =
 
 allArmors : List Armor
 allArmors =
-    [ let a = newArmor "Leather Armor" 1 15 in { a | defenseBonus = 1 }
+    [ let a = newArmor "Leather Armor" 1 1 in { a | defenseBonus = 1 }
     ]
 
 -- FURNITURE
@@ -583,7 +583,7 @@ nullFurniture =
 
 allFurniture : List Furniture
 allFurniture =
-    [ let f = newFurniture "Heal Pillow" 1 25 in { f | healAmount = 1 }
+    [ let f = newFurniture "Heal Pillow" 1 1 in { f | healAmount = 1 }
     ]
 
 -- OBJECT
@@ -650,8 +650,8 @@ newSkill name learnCost mpCost skillContext =
 
 allSkills : List Skill
 allSkills =
-    [ let s = newSkill "Forest Walk" 2 1 ExploreSkill in { s | forestWalkEffect = True }
-    , let s = newSkill "Fire" 5 1 BattleSkill in { s | damage = 1 }
+    [ let s = newSkill "Forest Walk" 1 1 ExploreSkill in { s | forestWalkEffect = True }
+    , let s = newSkill "Fire" 1 1 BattleSkill in { s | damage = 1 }
     ]
 
 type alias Passive =
@@ -677,10 +677,10 @@ newPassive name learnCost =
 
 allPassives : List Passive
 allPassives =
-    [ let p = newPassive "HP +2" 10 in { p | maxHitPointBonus = 2 }
-    , let p = newPassive "ATK +1" 10 in { p | attackBonus = 1 }
-    , let p = newPassive "DEF +1" 10 in { p | defenseBonus = 1 }
-    , let p = newPassive "AGI +1" 10 in { p | agilityBonus = 1 }
+    [ let p = newPassive "HP +2" 1 in { p | maxHitPointBonus = 2 }
+    , let p = newPassive "ATK +1" 1 in { p | attackBonus = 1 }
+    , let p = newPassive "DEF +1" 1 in { p | defenseBonus = 1 }
+    , let p = newPassive "AGI +1" 1 in { p | agilityBonus = 1 }
     ]
 
 -- TRAP
@@ -1385,27 +1385,52 @@ updateUseSkill skill model =
     let
         condition = model.magicPoints >= skill.mpCost
         magicCost = if condition then skill.mpCost else 0
-        newModel =
+        ( newModel, newCmd ) =
             if condition then
                 case ( skill.skillContext, model.mode ) of
                     ( ExploreSkill, _ ) ->
-                        { model
-                            | activeSkills = skill :: model.activeSkills
-                            , magicPoints = model.magicPoints - skill.mpCost
-                        }
+                        let
+                            nextModel =
+                                { model
+                                    | activeSkills = skill :: model.activeSkills
+                                    , magicPoints = model.magicPoints - skill.mpCost
+                                }
+                        in
+                        ( nextModel, Cmd.none )
                     
                     ( BattleSkill, Exploring MonsterNode ) ->
-                        { model
-                            | magicPoints = model.magicPoints - skill.mpCost
-                            , encounteredMonster = Maybe.map (\m -> { m | hitPoints = max 0 (m.hitPoints - skill.damage)}) model.encounteredMonster
-                        }
+                        case model.encounteredMonster of
+                            Just monster ->
+                                let
+                                    win =
+                                        monster.hitPoints <= skill.damage
+                                    goldGain = if win then monster.goldYield else 0
+                                    expGainer = if win then updateExpGain monster.expYield else \m -> m
+                                    nextMonster =
+                                        if win then
+                                            Nothing
+                                        else
+                                            Just { monster | hitPoints = max (monster.hitPoints - skill.damage) 0 }
+                                    nextModel =
+                                        { model
+                                            | encounteredMonster = nextMonster
+                                            , gold = model.gold + goldGain
+                                        }
+                                            |> expGainer
+                                    nextCmd =
+                                        if win then getNextExploreNode model.currentMap else Cmd.none
+                                in
+                                ( nextModel, nextCmd )
+                                
+                            Nothing ->
+                                ( model, Cmd.none )
                     
                     _ ->
-                        model
+                        ( model, Cmd.none )
             else
-                model
+                ( model, Cmd.none )
     in
-    ( newModel, Cmd.none )
+    ( newModel, newCmd )
                      
 updateBuyArmor : Armor -> Model -> ( Model, Cmd Msg )
 updateBuyArmor armor model =
