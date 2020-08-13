@@ -473,32 +473,37 @@ type alias Item =
     { name : String
     , level : Int
     , price : Int
+    , context : Context
     , frequency : Frequency
     , healAmount : Int
     , escapeFromDungeon : Bool
     , antidoteAmount : Int
+    , damage : Int
     }
 
-newItem : String -> Int -> Int -> Item
-newItem name level price =
+newItem : String -> Int -> Int -> Context -> Item
+newItem name level price context =
     { name = name
     , level = level
     , price = price
+    , context = context
     , frequency = Common
     , healAmount = 0
     , escapeFromDungeon = False
     , antidoteAmount = 0
+    , damage = 0
     }
 
 nullItem : Item
 nullItem =
-    newItem "Null Item" 0 0
+    newItem "Null Item" 0 0 AnyContext
 
 allItems : List Item
 allItems =
-    [ let i = newItem "Buttermilk Old-Fashioned Donut" 1 1 in { i | healAmount = 1}
-    , let i = newItem "Antidote" 1 1 in { i | antidoteAmount = 1 }
-    , let i = newItem "Escape Rope" 1 1 in { i | escapeFromDungeon = True }
+    [ let i = newItem "Buttermilk Old-Fashioned Donut" 1 1 AnyContext in { i | healAmount = 1}
+    , let i = newItem "Antidote" 1 1 AnyContext in { i | antidoteAmount = 1 }
+    , let i = newItem "Escape Rope" 1 1 ExploreContext in { i | escapeFromDungeon = True }
+    , let i = newItem "Dart" 1 1 BattleContext in { i | damage = 1 }
     ]
 
 -- WEAPON
@@ -635,7 +640,8 @@ type alias Skill =
     }
 
 type Context
-    = ExploreContext
+    = AnyContext
+    | ExploreContext
     | BattleContext
 
 newSkill : String -> Int -> Int -> Context -> Skill
@@ -1291,21 +1297,64 @@ updateBuyWeapon weapon model =
 updateUseItem : Item -> Model -> ( Model, Cmd Msg )
 updateUseItem item model =
     let
-        newMode =
-            if item.escapeFromDungeon then
-                NotExploring
-            else
-                model.mode
-        
-        newModel =
-            { model
-                | inventory = Maybe.withDefault [] (List.tail model.inventory)
-                , hitPoints = min (model.hitPoints + item.healAmount) model.maxHitPoints
-                , mode = newMode
-                , poison = max (model.poison - item.antidoteAmount) 0
+        ( newModel, newCmd ) =
+            case ( item.context, model.mode ) of
+                ( AnyContext, _ ) ->
+                    let
+                        nextModel =
+                            model
+                    in
+                    ( nextModel, Cmd.none )
+                
+                ( ExploreContext, Exploring _ ) ->
+                    let
+                        nextMode =
+                            if item.escapeFromDungeon then NotExploring else model.mode
+                        nextModel =
+                            { model
+                                | mode = nextMode
+                            }
+                    in
+                    ( nextModel, Cmd.none )
+                
+                ( BattleContext, Exploring MonsterNode ) ->
+                    case model.encounteredMonster of
+                        Just monster ->
+                            let
+                                win =
+                                    monster.hitPoints <= item.damage
+                                goldGain = if win then monster.goldYield else 0
+                                expGainer = if win then updateExpGain monster.expYield else \m -> m
+                                nextMonster =
+                                    if win then
+                                        Nothing
+                                    else
+                                        Just { monster | hitPoints = max (monster.hitPoints - item.damage) 0 }
+                                nextModel =
+                                    { model
+                                        | encounteredMonster = nextMonster
+                                        , gold = model.gold + goldGain
+                                    }
+                                        |> expGainer
+                                nextCmd =
+                                    if win then getNextExploreNode model.currentMap else Cmd.none
+                            in
+                            ( nextModel, nextCmd )
+                            
+                        Nothing ->
+                            ( model, Cmd.none )
+                
+                _ ->
+                    ( model, Cmd.none )
+    
+        newModel2 =
+            { newModel
+                | inventory = Maybe.withDefault [] (List.tail newModel.inventory)
+                , hitPoints = min (newModel.hitPoints + item.healAmount) newModel.maxHitPoints
+                , poison = max (newModel.poison - item.antidoteAmount) 0
             }
     in
-    ( newModel, Cmd.none )
+    ( newModel2, newCmd )
 
 updateEquipWeapon : Weapon -> Model -> ( Model, Cmd Msg )
 updateEquipWeapon weapon model =
@@ -1381,7 +1430,6 @@ updateLearnPassive passive model =
     in
     ( newModel, Cmd.none )
 
-
 updateUseSkill : Skill -> Model -> ( Model, Cmd Msg )
 updateUseSkill skill model =
     let
@@ -1390,7 +1438,16 @@ updateUseSkill skill model =
         ( newModel, newCmd ) =
             if condition then
                 case ( skill.context, model.mode ) of
-                    ( ExploreContext, _ ) ->
+                    ( AnyContext, _ ) ->
+                        let
+                            nextModel =
+                                { model
+                                    | magicPoints = model.magicPoints - skill.mpCost
+                                }
+                        in
+                        ( nextModel, Cmd.none )
+                    
+                    ( ExploreContext, Exploring _ ) ->
                         let
                             nextModel =
                                 { model
