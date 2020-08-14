@@ -638,6 +638,7 @@ type alias Skill =
     , context : Context
     , forestWalkEffect : Bool
     , damage : Int
+    , heal : Int
     }
 
 type Context
@@ -653,12 +654,14 @@ newSkill name learnCost mpCost skillContext =
     , context = skillContext
     , forestWalkEffect = False
     , damage = 0
+    , heal = 0
     }
 
 allSkills : List Skill
 allSkills =
     [ let s = newSkill "Forest Walk" 1 1 ExploreContext in { s | forestWalkEffect = True }
     , let s = newSkill "Fire" 1 1 BattleContext in { s | damage = 1 }
+    , let s = newSkill "Heal" 1 1 AnyContext in { s | heal = 1 }
     ]
 
 -- PASSIVE
@@ -1449,6 +1452,7 @@ updateUseSkill skill model =
                             nextModel =
                                 { model
                                     | magicPoints = model.magicPoints - skill.mpCost
+                                    , hitPoints = min (model.hitPoints + skill.heal) model.maxHitPoints
                                 }
                         in
                         ( nextModel, Cmd.none )
