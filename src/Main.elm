@@ -406,6 +406,7 @@ type alias Monster =
     , expYield : Int
     , goldYield : Int
     , poison : Int
+    , burning : Int
     }   
 
 type Frequency
@@ -440,6 +441,7 @@ newMonster name level hitPoints =
     , expYield = 0
     , goldYield = 0
     , poison = 0
+    , burning = 0
     }
 
 nullMonster : Monster
@@ -457,6 +459,7 @@ bossSlime =
     , expYield = 10
     , goldYield = 10
     , poison = 0
+    , burning = 0
     }
 
 allMonsters =
@@ -639,6 +642,7 @@ type alias Skill =
     , forestWalkEffect : Bool
     , damage : Int
     , heal : Int
+    , burning : Int
     }
 
 type Context
@@ -655,12 +659,13 @@ newSkill name learnCost mpCost skillContext =
     , forestWalkEffect = False
     , damage = 0
     , heal = 0
+    , burning = 0
     }
 
 allSkills : List Skill
 allSkills =
     [ let s = newSkill "Forest Walk" 1 1 ExploreContext in { s | forestWalkEffect = True }
-    , let s = newSkill "Fire" 1 1 BattleContext in { s | damage = 1 }
+    , let s = newSkill "Fire" 1 1 BattleContext in { s | damage = 1, burning = 1 }
     , let s = newSkill "Heal" 1 1 AnyContext in { s | heal = 1 }
     ]
 
