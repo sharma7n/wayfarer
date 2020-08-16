@@ -407,6 +407,7 @@ type alias Monster =
     , goldYield : Int
     , poison : Int
     , burning : Int
+    , frost : Int
     }   
 
 type Frequency
@@ -442,6 +443,7 @@ newMonster name level hitPoints =
     , goldYield = 0
     , poison = 0
     , burning = 0
+    , frost = 0
     }
 
 nullMonster : Monster
@@ -460,6 +462,7 @@ bossSlime =
     , goldYield = 10
     , poison = 0
     , burning = 0
+    , frost = 0
     }
 
 allMonsters =
@@ -643,6 +646,7 @@ type alias Skill =
     , damage : Int
     , heal : Int
     , burning : Int
+    , frost : Int
     }
 
 type Context
@@ -660,6 +664,7 @@ newSkill name learnCost mpCost skillContext =
     , damage = 0
     , heal = 0
     , burning = 0
+    , frost = 0
     }
 
 allSkills : List Skill
@@ -667,6 +672,7 @@ allSkills =
     [ let s = newSkill "Forest Walk" 1 1 ExploreContext in { s | forestWalkEffect = True }
     , let s = newSkill "Fire" 1 1 BattleContext in { s | damage = 1, burning = 1 }
     , let s = newSkill "Heal" 1 1 AnyContext in { s | heal = 1 }
+    , let s = newSkill "Ice" 1 1 BattleContext in { s | damage = 1, frost = 1 }
     ]
 
 -- PASSIVE
@@ -949,7 +955,14 @@ viewExploring exploreNode model =
                                         Html.li [] [ Html.text <| "Poison: " ++ String.fromInt monster.poison ]
                                   else
                                         Html.node "blank" [] []
-                                
+                                , if monster.burning > 0 then
+                                        Html.li [] [ Html.text <| "Burning: " ++ String.fromInt monster.burning ]
+                                  else
+                                        Html.node "blank" [] []
+                                  , if monster.frost > 0 then
+                                          Html.li [] [ Html.text <| "Burning: " ++ String.fromInt monster.frost ]
+                                    else
+                                          Html.node "blank" [] []
                                 , Html.li [] [ Html.text <| "EXP Yield: " ++ String.fromInt monster.expYield ]
                                 , Html.li [] [ Html.text <| "Gold Yield: " ++ String.fromInt monster.goldYield ]
                                 ]
@@ -1189,19 +1202,9 @@ updateSpringTrap trap model =
 
 updateBossFight : Monster -> Model -> ( Model, Cmd Msg )
 updateBossFight monster model =
-    let
-        damage = max (monster.attack - model.defense) 0
-        win = model.attack >= monster.hitPoints
-        goldGain = if win then monster.goldYield else 0
-        expGainer = if win then updateExpGain monster.expYield else \m -> m 
-        
+    let 
         newModel =
-            { model
-                | hitPoints = max (model.hitPoints - damage) 0
-                , gold = model.gold + goldGain
-                , poison = model.poison + monster.poison
-            }
-                |> expGainer
+            updateFightMonster monster model
     in
     ( newModel, Cmd.none )
 
@@ -1211,25 +1214,30 @@ updateFight model =
         newModel =
             case model.encounteredMonster of
                 Just monster ->
-                    let
-                        damage = max (monster.attack - model.defense) 0
-                        win = model.attack >= monster.hitPoints
-                        goldGain = if win then monster.goldYield else 0
-                        expGainer = if win then updateExpGain monster.expYield else \m -> m
-                    in
-                    { model
-                        | hitPoints = max (model.hitPoints - damage) 0
-                        , gold = model.gold + goldGain
-                        , encounteredMonster = Nothing
-                        , poison = model.poison + monster.poison
-                    }
-                        |> expGainer
+                    updateFightMonster monster model
                 
                 Nothing ->
                     model
 
     in
     ( newModel, getNextExploreNode model.currentMap )
+
+updateFightMonster : Monster -> Model -> Model
+updateFightMonster monster model =
+    let
+        suffer = monster.agility > monster.frost
+        damage = if suffer then max (monster.attack - model.defense) 0 else 0
+        poisonDelta = if suffer then monster.poison else 0
+        win = model.attack + monster.burning >= monster.hitPoints
+        goldGain = if win then monster.goldYield else 0
+        expGainer = if win then updateExpGain monster.expYield else \m -> m 
+    in
+    { model
+        | hitPoints = max (model.hitPoints - damage) 0
+        , gold = model.gold + goldGain
+        , poison = model.poison + poisonDelta
+    }
+        |> expGainer
 
 updateExpGain : Int -> Model -> Model
 updateExpGain gained model =
