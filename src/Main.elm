@@ -408,6 +408,7 @@ type alias Monster =
     , poison : Int
     , burning : Int
     , frost : Int
+    , fireBreath : Int
     }   
 
 type Frequency
@@ -444,6 +445,7 @@ newMonster name level hitPoints =
     , poison = 0
     , burning = 0
     , frost = 0
+    , fireBreath = 0
     }
 
 nullMonster : Monster
@@ -463,12 +465,14 @@ bossSlime =
     , poison = 0
     , burning = 0
     , frost = 0
+    , fireBreath = 0
     }
 
 allMonsters =
     [ let m = newMonster "Slime" 1 1 in { m | attack = 1, agility = 1, expYield = 1, goldYield = 1 }
-    , let m = newMonster "Squirrel" 1 1 { m | attack = 1, agility = 3, expYield = 1, goldYield = 1 }
+    , let m = newMonster "Plantie" 1 1 in { m | agility = 1, poison = 1, expYield = 1, goldYield = 1 }
     , let m = newMonster "Beastie" 1 2 in { m | attack = 2, agility = 1, expYield = 2, goldYield = 1 }
+    , let m = newMonster "Wyrmling" 1 2 in { m | attack = 1, agility = 1, fireBreath = 1, expYield = 2, goldYield = 3 }
     , let m = newMonster "Owl" 1 2 in { m | frequency = Uncommon, attack = 1, agility = 1, expYield = 1, goldYield = 2 }
     , let m = newMonster "Snake" 2 1 in { m | attack = 1, agility = 1, expYield = 2, goldYield = 2, poison = 1 }
     , let m = newMonster "Wolf" 2 3 in { m | attack = 3, agility = 1, expYield = 3, goldYield = 3 }
@@ -952,18 +956,10 @@ viewExploring exploreNode model =
                                 [ Html.li [] [ Html.text <| "Name: " ++ monster.name ]
                                 , Html.li [] [ Html.text <| "Hit Points: " ++ String.fromInt monster.hitPoints ]
                                 , Html.li [] [ Html.text <| "Attack: " ++ String.fromInt monster.attack ]
-                                , if monster.poison > 0 then
-                                        Html.li [] [ Html.text <| "Poison: " ++ String.fromInt monster.poison ]
-                                  else
-                                        Html.node "blank" [] []
-                                , if monster.burning > 0 then
-                                        Html.li [] [ Html.text <| "Burning: " ++ String.fromInt monster.burning ]
-                                  else
-                                        Html.node "blank" [] []
-                                  , if monster.frost > 0 then
-                                          Html.li [] [ Html.text <| "Burning: " ++ String.fromInt monster.frost ]
-                                    else
-                                          Html.node "blank" [] []
+                                , viewNonZeroMonsterAttribute "Poison" monster.poison
+                                , viewNonZeroMonsterAttribute "Burning" monster.burning
+                                , viewNonZeroMonsterAttribute "Frost" monster.frost
+                                , viewNonZeroMonsterAttribute "Fire Breath" monster.fireBreath
                                 , Html.li [] [ Html.text <| "EXP Yield: " ++ String.fromInt monster.expYield ]
                                 , Html.li [] [ Html.text <| "Gold Yield: " ++ String.fromInt monster.goldYield ]
                                 ]
@@ -1013,6 +1009,13 @@ viewExploring exploreNode model =
         , Html.ul [] options
         , Html.ul [] (List.map (\m -> (Html.li [] [ Html.text m ])) messages )
         ]
+
+viewNonZeroMonsterAttribute : String -> Int -> Html.Html msg
+viewNonZeroMonsterAttribute label amount =
+    if amount > 0 then
+            Html.li [] [ Html.text <| label ++ ": " ++ String.fromInt amount ]
+    else
+            Html.node "blank" [] []
 
 viewNotExploring : Model -> Html.Html Msg
 viewNotExploring model =
@@ -1227,7 +1230,7 @@ updateFightMonster : Monster -> Model -> Model
 updateFightMonster monster model =
     let
         suffer = monster.agility > monster.frost
-        damage = if suffer then max (monster.attack - model.defense) 0 else 0
+        damage = if suffer then (max (monster.attack - model.defense) 0) + monster.fireBreath else 0
         poisonDelta = if suffer then monster.poison else 0
         win = model.attack + monster.burning >= monster.hitPoints
         goldGain = if win then monster.goldYield else 0
