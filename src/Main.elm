@@ -466,12 +466,12 @@ bossSlime =
     }
 
 allMonsters =
-    [ let m = newMonster "Slime" 1 1 in { m | attack = 1, expYield = 1, goldYield = 1 }
-    , let m = newMonster "Beastie" 1 2 in { m | attack = 2, expYield = 2, goldYield = 1 }
-    , let m = newMonster "Owl" 1 2 in { m | frequency = Uncommon, attack = 1, expYield = 1, goldYield = 2 }
-    , let m = newMonster "Snake" 2 1 in { m | attack = 1, expYield = 2, goldYield = 2, poison = 1 }
-    , let m = newMonster "Wolf" 2 3 in { m | attack = 3, expYield = 3, goldYield = 3 }
-    , let m = newMonster "Bear" 3 5 in { m | attack = 7, expYield = 6, goldYield = 6 }
+    [ let m = newMonster "Slime" 1 1 in { m | attack = 1, agility = 1, expYield = 1, goldYield = 1 }
+    , let m = newMonster "Beastie" 1 2 in { m | attack = 2, agility = 1, expYield = 2, goldYield = 1 }
+    , let m = newMonster "Owl" 1 2 in { m | frequency = Uncommon, attack = 1, agility = 1, expYield = 1, goldYield = 2 }
+    , let m = newMonster "Snake" 2 1 in { m | attack = 1, agility = 1, expYield = 2, goldYield = 2, poison = 1 }
+    , let m = newMonster "Wolf" 2 3 in { m | attack = 3, agility = 1, expYield = 3, goldYield = 3 }
+    , let m = newMonster "Bear" 3 5 in { m | attack = 7, agility = 1, expYield = 6, goldYield = 6 }
     ]
 
 -- ITEM
