@@ -922,13 +922,8 @@ viewExploring exploreNode model =
         options =
             case exploreNode of
                 TerrainNode ->
-                    if List.any .forestWalkEffect model.activeSkills then
-                        [ viewOption Leave "Leave"
-                        , viewOption Continue "Continue"
-                        ]
-                    else
-                        [ viewOption Leave "Leave"
-                        ]
+                    [ viewOption Continue "Continue"
+                    ]
                 
                 TrapNode ->
                     [ case model.encounteredTrap of
@@ -1689,10 +1684,7 @@ updateGetExploreNode exploreNode model =
         nextMessages =
             case nextExploreNode of
                 TerrainNode ->
-                    if List.any (\s -> s.forestWalkEffect) model.activeSkills then
-                        [ "You find a dense grove of trees. You find a narrow path between them to continue." ]
-                    else
-                        [ "You find a dense grove of trees. You cannot proceed." ]
+                    [ "You find a dense grove of trees. You find a narrow path between them to continue." ]
                 
                 TrapNode ->
                     [ "You sense danger..." ]
